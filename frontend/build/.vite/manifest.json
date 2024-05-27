@@ -1,0 +1,56 @@
+{
+  "../../../../../../../@crx/manifest": {
+    "file": "assets/chunk-Dy6Xwyyv.js",
+    "src": "../../../../../../../@crx/manifest",
+    "isEntry": true
+  },
+  "_chunk-Cpj98o6Y.js": {
+    "file": "assets/chunk-Cpj98o6Y.js"
+  },
+  "index.js-loader.js": {
+    "file": "assets/index.js-loader-BgbESQtH.js",
+    "src": "index.js-loader.js"
+  },
+  "node_modules/canvg/lib/index.es.js": {
+    "file": "assets/chunk-aZLXdTQV.js",
+    "src": "node_modules/canvg/lib/index.es.js",
+    "isDynamicEntry": true,
+    "imports": [
+      "_chunk-Cpj98o6Y.js",
+      "src/contentScript/index.js"
+    ]
+  },
+  "node_modules/dompurify/dist/purify.es.js": {
+    "file": "assets/chunk-BZcJlXyC.js",
+    "src": "node_modules/dompurify/dist/purify.es.js",
+    "isDynamicEntry": true
+  },
+  "node_modules/html2canvas/dist/html2canvas.esm.js": {
+    "file": "assets/chunk-3NQT9CgR.js",
+    "src": "node_modules/html2canvas/dist/html2canvas.esm.js",
+    "isDynamicEntry": true
+  },
+  "popup.html": {
+    "file": "assets/chunk-zxHhK7cw.js",
+    "src": "popup.html",
+    "isEntry": true,
+    "imports": [
+      "_chunk-Cpj98o6Y.js"
+    ]
+  },
+  "src/background/index.js": {
+    "file": "assets/chunk-zrudq1QU.js",
+    "src": "src/background/index.js",
+    "isEntry": true
+  },
+  "src/contentScript/index.js": {
+    "file": "assets/chunk-CzswjsMC.js",
+    "src": "src/contentScript/index.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "node_modules/html2canvas/dist/html2canvas.esm.js",
+      "node_modules/dompurify/dist/purify.es.js",
+      "node_modules/canvg/lib/index.es.js"
+    ]
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "Fanfic Downloader Extension",
+  "description": "Download fanfics from various websites.",
+  "version": "0.0.0",
+  "manifest_version": 3,
+  "icons": {
+    "128": "img/logo.jpg"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "img/logo.jpg"
+  },
+  "background": {
+    "service_worker": "service-worker-loader.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "js": [
+        "assets/index.js-loader-BgbESQtH.js"
+      ],
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage",
+    "downloads",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "web_accessible_resources": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "resources": [
+        "assets/chunk-3NQT9CgR.js",
+        "assets/chunk-BZcJlXyC.js",
+        "assets/chunk-aZLXdTQV.js",
+        "assets/chunk-Cpj98o6Y.js",
+        "assets/chunk-CzswjsMC.js"
+      ],
+      "use_dynamic_url": true
+    }
+  ]
+}
