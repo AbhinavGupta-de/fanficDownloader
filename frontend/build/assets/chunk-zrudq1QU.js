@@ -1,1 +1,0 @@
-chrome.runtime.onMessage.addListener((e,o,t)=>{if(e.downloadType)return chrome.tabs.query({active:!0,currentWindow:!0},function(n){chrome.tabs.sendMessage(n[0].id,{downloadType:e.downloadType,url:e.url},function(r){t({status:r.status,file:r.file,error:r.error})})}),!0});

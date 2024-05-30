@@ -1,0 +1,28 @@
+{
+	"manifest_version": 3,
+	"name": "Fanfiction Downloader",
+	"description": "Download fanfiction from Fanfiction.net and Archiveofourown.org",
+	"version": "1.0.0",
+	"action": {
+		"default_popup": "index.html",
+		"default_icon": {
+			"16": "image.png",
+			"48": "image.png",
+			"128": "image.png"
+		}
+	},
+	"icons": {
+		"16": "image.png",
+		"48": "image.png",
+		"128": "image.png"
+	},
+	"permissions": ["activeTab", "storage", "downloads", "tabs", "scripting"],
+	"background": {
+		"service_worker": "background.js"
+	},
+	"host_permissions": [
+		"https://www.fanfiction.net/*",
+		"https://www.fictionpress.com/*",
+		"https://archiveofourown.org/*"
+	]
+}
