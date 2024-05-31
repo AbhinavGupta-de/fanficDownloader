@@ -1,8 +1,11 @@
+import Header from './main/Header';
+import Main from './main/Main';
+
 const App = () => {
 	return (
-		<div>
-			<h1>React App</h1>
-			<p>This is a React app</p>
+		<div className="w-[350px] h-[500px] bg-background font-body">
+			<Header />
+			<Main />
 		</div>
 	);
 };
