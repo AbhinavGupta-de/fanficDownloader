@@ -19,14 +19,11 @@ async function downloadStoryContent(url: string): Promise<Buffer> {
 	const page = await browser.newPage();
 
 	try {
-		// Navigate to the story page
 		await page.goto(url, { waitUntil: 'networkidle2' });
 
-		// Locate the "Entire Work" link
 		const entireWorkLink = await page.$('li.chapter.entire a');
 
 		if (entireWorkLink) {
-			// If "Entire Work" link is found, download the entire work
 			const entireWorkUrl = await page.evaluate(
 				(link) => link.getAttribute('href'),
 				entireWorkLink
@@ -34,19 +31,15 @@ async function downloadStoryContent(url: string): Promise<Buffer> {
 			if (!entireWorkUrl) {
 				throw new Error('Entire Work link does not have a valid URL');
 			}
-			// Navigate to the Entire Work page
 			await page.goto(`https://archiveofourown.org${entireWorkUrl}`, {
 				waitUntil: 'networkidle2',
 			});
 		}
 
-		// Get the story content
 		const storyContent = await getHtmlContent(page.url());
 
-		// Set the page content with the story content
 		await page.setContent(storyContent);
 
-		// Convert content to PDF
 		const pdfBuffer = await page.pdf({
 			format: 'A4',
 			margin: {
@@ -66,7 +59,6 @@ async function downloadStoryContent(url: string): Promise<Buffer> {
 	} catch (error) {
 		throw new Error(`Failed to download story: ${error}`);
 	} finally {
-		// Close browser
 		await browser.close();
 	}
 }
