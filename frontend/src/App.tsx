@@ -5,7 +5,7 @@ import Main from './main/Main';
 
 const App = () => {
 	return (
-		<div className="w-[380px] h-[480px] bg-background font-body border-2 border-white rounded-3xl">
+		<div className="w-[380px] h-[500px] bg-background font-body border-2 border-white rounded-3xl">
 			<Header />
 			<Main />
 			<Download />
