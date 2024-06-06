@@ -2,9 +2,13 @@ import puppeteer from 'puppeteer';
 
 async function getChapterContent(url, log) {
 	const browser = await puppeteer.launch({
-		args: ['--no-sandbox', '--disable-setuid-sandbox'],
+		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 	});
 	const page = await browser.newPage();
+
+	// Disable cache
+	await page.setCacheEnabled(false);
+
 	await page.goto(url, { waitUntil: 'networkidle2' });
 
 	const chapterContent = await page.$eval('#workskin', (div) => div.innerHTML);
@@ -16,12 +20,10 @@ async function getChapterContent(url, log) {
 export default async ({ req, res, log }) => {
 	try {
 		log('Function invoked');
+		log(`Request payload: ${req.body}`);
 
-		log(req.body);
 		const { url } = req.body;
-
-		log(req.body);
-		log(`URL: ${url}`);
+		log(`Parsed URL: ${url}`);
 
 		if (!url) {
 			log('No URL provided');
@@ -33,9 +35,16 @@ export default async ({ req, res, log }) => {
 		log('Content fetched successfully');
 
 		const browser = await puppeteer.launch({
-			args: ['--no-sandbox', '--disable-setuid-sandbox'],
+			args: [
+				'--no-sandbox',
+				'--disable-setuid-sandbox',
+				'--disable-dev-shm-usage',
+			],
 		});
 		const page = await browser.newPage();
+
+		await page.setCacheEnabled(false);
+
 		await page.setContent(chapterContent);
 		log('Content set successfully');
 
