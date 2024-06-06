@@ -4,7 +4,7 @@ import fs from 'fs';
 async function generateAndSavePDF() {
 	try {
 		const response = await fetch(
-			'http://127.0.0.1:5001/ffnd-d38f3/us-central1/downloadStory',
+			'https://6661df0a82b533cdfb2e.appwrite.global/',
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
