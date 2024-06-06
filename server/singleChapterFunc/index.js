@@ -1,6 +1,6 @@
 import puppeteer from 'puppeteer';
 
-async function getChapterContent(url) {
+async function getChapterContent(url, log) {
 	const browser = await puppeteer.launch({
 		args: ['--no-sandbox', '--disable-setuid-sandbox'],
 	});
@@ -15,17 +15,28 @@ async function getChapterContent(url) {
 
 export default async ({ req, res, log }) => {
 	try {
-		const { url } = JSON.parse(req.payload); // Appwrite Cloud Functions use req.payload for request data
+		log('Function invoked'); // Log the function invocation
+		log(`Request payload: ${req.payload}`);
+
+		const payload = JSON.parse(req.payload);
+		log(`Parsed payload: ${JSON.stringify(payload)}`);
+
+		const { url } = payload;
 		if (!url) {
-			return res.json({ error: 'URL is required' }, 400); // Send JSON response with 400 status code
+			log('No URL provided');
+			return res.json({ error: 'URL is required' }, 400);
 		}
 
-		const chapterContent = await getChapterContent(url);
+		log(`Fetching content from URL: ${url}`);
+		const chapterContent = await getChapterContent(url, log);
+		log('Content fetched successfully');
+
 		const browser = await puppeteer.launch({
 			args: ['--no-sandbox', '--disable-setuid-sandbox'],
 		});
 		const page = await browser.newPage();
 		await page.setContent(chapterContent);
+		log('Content set successfully');
 
 		const pdfBuffer = await page.pdf({
 			format: 'A4',
@@ -43,11 +54,11 @@ export default async ({ req, res, log }) => {
 		});
 
 		await browser.close();
+		log('PDF generated successfully');
 
-		// Send PDF buffer as response with appropriate content type
 		return res.send(pdfBuffer, 200, { 'Content-Type': 'application/pdf' });
 	} catch (err) {
-		log(err); // Use the log function to log the error
-		return res.json({ error: err.toString() }, 500); // Send JSON response with 500 status code
+		log(`Error occurred: ${err}`);
+		return res.json({ error: err.toString() }, 500);
 	}
 };
