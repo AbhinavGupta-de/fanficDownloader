@@ -17,6 +17,7 @@ export default async ({ req, res, log }) => {
 	try {
 		log('Function invoked');
 
+		log(req.body);
 		const { url } = JSON.parse(req.body);
 
 		log(req.body);
