@@ -16,6 +16,7 @@ async function getChapterContent(url, log) {
 export default async ({ req, res, log }) => {
 	try {
 		log('Function invoked'); // Log the function invocation
+		log(req);
 		log(`Request payload: ${req.payload}`);
 
 		const payload = JSON.parse(req.payload);
