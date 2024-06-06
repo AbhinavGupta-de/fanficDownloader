@@ -1,5 +1,4 @@
-const functions = require('firebase-functions');
-const puppeteer = require('puppeteer');
+import puppeteer from 'puppeteer';
 
 async function getChapterContent(url) {
 	const browser = await puppeteer.launch({
@@ -14,9 +13,9 @@ async function getChapterContent(url) {
 	return chapterContent;
 }
 
-export default async (req, res) => {
+export default async ({ req, res, log, error }) => {
 	try {
-		const { url } = req.body;
+		const { url } = JSON.parse(req.payload); // Appwrite Cloud Functions use req.payload for request data
 		if (!url) {
 			res.status(400).send('URL is required');
 			return;
@@ -46,7 +45,7 @@ export default async (req, res) => {
 
 		await browser.close();
 
-		res.set('Content-Type', 'application/pdf');
+		res.setHeader('Content-Type', 'application/pdf');
 		res.send(pdfBuffer);
 	} catch (error) {
 		if (error instanceof Error) {
