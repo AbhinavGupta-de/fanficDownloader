@@ -1,10 +1,9 @@
 import { execSync } from 'child_process';
-import * as functions from 'firebase-functions';
 import puppeteer from 'puppeteer';
 
 let installed = false;
 
-async function getHtmlContent(url) {
+async function getHtmlContent(url, log) {
 	const browser = await puppeteer.launch({
 		executablePath: '/usr/bin/chromium-browser',
 		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
@@ -12,14 +11,13 @@ async function getHtmlContent(url) {
 	const page = await browser.newPage();
 
 	await page.setCacheEnabled(false);
-
 	await page.goto(url, { waitUntil: 'networkidle2' });
 	const content = await page.$eval('#workskin', (div) => div.innerHTML);
 	await browser.close();
 	return content;
 }
 
-async function downloadStoryContent(url) {
+async function downloadStoryContent(url, log) {
 	const browser = await puppeteer.launch({
 		executablePath: '/usr/bin/chromium-browser',
 		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
@@ -31,7 +29,6 @@ async function downloadStoryContent(url) {
 		await page.goto(url, { waitUntil: 'networkidle2' });
 
 		const entireWorkLink = await page.$('li.chapter.entire a');
-
 		if (entireWorkLink) {
 			const entireWorkUrl = await page.evaluate(
 				(link) => link.getAttribute('href'),
@@ -45,8 +42,7 @@ async function downloadStoryContent(url) {
 			});
 		}
 
-		const storyContent = await getHtmlContent(page.url());
-
+		const storyContent = await getHtmlContent(page.url(), log);
 		await page.setContent(storyContent);
 
 		const pdfBuffer = await page.pdf({
@@ -66,13 +62,13 @@ async function downloadStoryContent(url) {
 
 		return pdfBuffer;
 	} catch (error) {
-		throw new Error(`Failed to download story: ${error}`);
+		throw new Error(`Failed to download story: ${error.message}`);
 	} finally {
 		await browser.close();
 	}
 }
 
-export const downloadStory = functions.https.onRequest(async (req, res) => {
+export default async ({ req, res, log }) => {
 	try {
 		if (!installed) {
 			execSync(
@@ -83,19 +79,17 @@ export const downloadStory = functions.https.onRequest(async (req, res) => {
 
 		const { url } = req.body;
 		if (!url) {
-			res.status(400).send('URL is required');
-			return;
+			log('No URL provided');
+			return res.json({ error: 'URL is required' }, 400);
 		}
 
-		const storyContent = await downloadStoryContent(url);
+		log(`Fetching content from URL: ${url}`);
+		const storyContent = await downloadStoryContent(url, log);
+		log('Content fetched and PDF generated successfully');
 
-		res.set('Content-Type', 'application/pdf');
-		res.send(storyContent);
+		return res.send(storyContent, 200, { 'Content-Type': 'application/pdf' });
 	} catch (error) {
-		if (error instanceof Error) {
-			res.status(500).send(error.toString());
-		} else {
-			res.status(500).send('An unknown error occurred');
-		}
+		log(`Error occurred: ${error.message}`);
+		return res.json({ error: error.toString() }, 500);
 	}
-});
+};
