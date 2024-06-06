@@ -18,6 +18,10 @@ export default async ({ req, res, log }) => {
 		log('Function invoked');
 
 		const { url } = req.body;
+
+		log(`Request body: ${JSON.stringify(req.body)}`);
+		log(`URL: ${url}`);
+
 		if (!url) {
 			log('No URL provided');
 			return res.json({ error: 'URL is required' }, 400);
