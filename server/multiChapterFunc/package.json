@@ -1,5 +1,5 @@
 {
-	"name": "scf",
+	"name": "multifanficdownloader",
 	"version": "1.0.0",
 	"description": "A function to download a whole fanfiction",
 	"main": "index.js",
