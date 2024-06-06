@@ -1,2 +1,2 @@
-export { downloadSingleChapter } from './singleChapter';
-export { downloadStory } from './wholeStory';
+export { downloadSingleChapter } from "./singleChapter";
+export { downloadStory } from "./wholeStory";
