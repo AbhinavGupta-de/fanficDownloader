@@ -17,7 +17,8 @@ export default async ({ req, res, log, error }) => {
 	try {
 		const { url } = JSON.parse(req.payload); // Appwrite Cloud Functions use req.payload for request data
 		if (!url) {
-			res.status(400).send('URL is required');
+			res.setHeader('Content-Type', 'application/json');
+			res.send(JSON.stringify({ error: 'URL is required' }));
 			return;
 		}
 
@@ -47,11 +48,9 @@ export default async ({ req, res, log, error }) => {
 
 		res.setHeader('Content-Type', 'application/pdf');
 		res.send(pdfBuffer);
-	} catch (error) {
-		if (error instanceof Error) {
-			res.status(500).send(error.toString());
-		} else {
-			res.status(500).send('An unknown error occurred');
-		}
+	} catch (err) {
+		log(err); // Use the log function to log the error
+		res.setHeader('Content-Type', 'application/json');
+		res.send(JSON.stringify({ error: err.toString() }));
 	}
 };
