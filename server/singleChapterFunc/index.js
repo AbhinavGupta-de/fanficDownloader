@@ -13,13 +13,11 @@ async function getChapterContent(url) {
 	return chapterContent;
 }
 
-export default async ({ req, res, log, error }) => {
+export default async ({ req, res, log }) => {
 	try {
 		const { url } = JSON.parse(req.payload); // Appwrite Cloud Functions use req.payload for request data
 		if (!url) {
-			res.setHeader('Content-Type', 'application/json');
-			res.send(JSON.stringify({ error: 'URL is required' }));
-			return;
+			return res.json({ error: 'URL is required' }, 400); // Send JSON response with 400 status code
 		}
 
 		const chapterContent = await getChapterContent(url);
@@ -46,11 +44,10 @@ export default async ({ req, res, log, error }) => {
 
 		await browser.close();
 
-		res.setHeader('Content-Type', 'application/pdf');
-		res.send(pdfBuffer);
+		// Send PDF buffer as response with appropriate content type
+		return res.send(pdfBuffer, 200, { 'Content-Type': 'application/pdf' });
 	} catch (err) {
 		log(err); // Use the log function to log the error
-		res.setHeader('Content-Type', 'application/json');
-		res.send(JSON.stringify({ error: err.toString() }));
+		return res.json({ error: err.toString() }, 500); // Send JSON response with 500 status code
 	}
 };
