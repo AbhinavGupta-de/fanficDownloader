@@ -15,20 +15,24 @@ async function getChapterContent(url, log) {
 
 export default async ({ req, res, log }) => {
 	try {
-		log('Function invoked'); // Log the function invocation
+		log('Function invoked');
 
 		const { url } = req.body;
 		if (!url) {
+			log('No URL provided');
 			return res.json({ error: 'URL is required' }, 400);
 		}
 
+		log(`Fetching content from URL: ${url}`);
 		const chapterContent = await getChapterContent(url, log);
+		log('Content fetched successfully');
 
 		const browser = await puppeteer.launch({
 			args: ['--no-sandbox', '--disable-setuid-sandbox'],
 		});
 		const page = await browser.newPage();
 		await page.setContent(chapterContent);
+		log('Content set successfully');
 
 		const pdfBuffer = await page.pdf({
 			format: 'A4',
