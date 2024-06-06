@@ -1,12 +1,15 @@
+import { execSync } from 'child_process';
 import puppeteer from 'puppeteer';
+
+let installed = false;
 
 async function getChapterContent(url, log) {
 	const browser = await puppeteer.launch({
+		executablePath: '/usr/bin/chromium-browser',
 		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 	});
 	const page = await browser.newPage();
 
-	// Disable cache
 	await page.setCacheEnabled(false);
 
 	await page.goto(url, { waitUntil: 'networkidle2' });
@@ -20,7 +23,7 @@ async function getChapterContent(url, log) {
 export default async ({ req, res, log }) => {
 	try {
 		log('Function invoked');
-		log(`Request payload: ${req.body}`);
+		log(`Request object: ${req}`);
 
 		const { url } = req.body;
 		log(`Parsed URL: ${url}`);
@@ -30,11 +33,24 @@ export default async ({ req, res, log }) => {
 			return res.json({ error: 'URL is required' }, 400);
 		}
 
+		// Install Chromium and dependencies if not installed
+		if (!installed) {
+			log('Installing Chromium and dependencies');
+			execSync(
+				'apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont'
+			);
+			log('Chromium and dependencies installed');
+			installed = true;
+		} else {
+			log('Chromium already installed');
+		}
+
 		log(`Fetching content from URL: ${url}`);
 		const chapterContent = await getChapterContent(url, log);
 		log('Content fetched successfully');
 
 		const browser = await puppeteer.launch({
+			executablePath: '/usr/bin/chromium-browser',
 			args: [
 				'--no-sandbox',
 				'--disable-setuid-sandbox',

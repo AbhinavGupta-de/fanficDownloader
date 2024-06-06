@@ -5,8 +5,7 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"install": "npx puppeteer browsers install chrome && npm install"
+		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"author": "Abhinav Gupta",
 	"license": "ISC",
