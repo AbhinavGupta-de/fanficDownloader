@@ -23,14 +23,13 @@
 	"permissions": ["activeTab", "storage", "downloads", "tabs", "scripting"],
 	"content_scripts": [
 		{
-			"matches": ["https://*/*", "http://*/*"],
+			"matches": [
+				"https://www.fanfiction.net/*",
+				"https://archiveofourown.org/*",
+				"https://66614fabac01bd29afbd.appwrite.global/",
+				"https://6661df0a82b533cdfb2e.appwrite.global/"
+			],
 			"js": ["content.js"]
-		}
-	],
-	"web_accessible_resources": [
-		{
-			"resources": ["dist/*"],
-			"matches": ["https://*/*", "http://*/*"]
 		}
 	]
 }
