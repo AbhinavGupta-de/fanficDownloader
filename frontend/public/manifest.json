@@ -2,7 +2,7 @@
 	"manifest_version": 3,
 	"name": "Fanfiction Downloader",
 	"description": "Download fanfiction from Fanfiction.net and Archiveofourown.org",
-	"author": "Your Name",
+	"author": "Abhinav Gupta",
 	"version": "1.0.0",
 	"icons": {
 		"16": "image.png",

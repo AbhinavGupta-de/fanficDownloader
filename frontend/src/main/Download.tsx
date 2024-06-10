@@ -30,15 +30,13 @@ const Download: React.FC = () => {
 			} finally {
 				setLoading(false);
 			}
-		} else {
-			alert('Invalid URL. Please navigate to a valid archiveofourown.org page.');
 		}
 	};
 
 	return (
 		<div className="flex p-5 flex-col gap-2">
 			{loading ? (
-				<div className="flex justify-center max-w-[120px] items-center">
+				<div className="flex justify-center max-w-[120px] mx-auto items-center">
 					<img src="/icons/runningBunny.gif" alt="Bunny running" />
 				</div>
 			) : (
