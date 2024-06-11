@@ -20,7 +20,7 @@
 	"background": {
 		"service_worker": "background.js"
 	},
-	"permissions": ["activeTab", "storage", "downloads", "tabs", "scripting"],
+	"permissions": ["activeTab", "downloads", "tabs", "scripting"],
 	"content_scripts": [
 		{
 			"matches": [
