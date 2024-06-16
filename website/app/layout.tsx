@@ -19,7 +19,15 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={inter.className}>
+			<body
+				className={inter.className}
+				style={{
+					backgroundColor: '#20231F',
+					color: 'white',
+					fontSize: '20px',
+					fontFamily: 'Kelly Slab',
+				}}
+			>
 				<Header />
 				<main className="flex">
 					{children}

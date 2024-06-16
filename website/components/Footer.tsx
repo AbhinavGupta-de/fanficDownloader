@@ -2,7 +2,7 @@ import React from 'react';
 
 const Footer = () => {
 	return (
-		<footer className="flex justify-center items-center p-5">
+		<footer className="flex justify-center items-center p-5 text-[20px]">
 			<p>
 				This page is developed by{' '}
 				<a href="https://www.linkedin.com/in/abhinavgpt/" className="underline">

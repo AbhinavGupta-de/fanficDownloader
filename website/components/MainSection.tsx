@@ -4,7 +4,7 @@ import React from 'react';
 const MainSection = () => {
 	return (
 		<div className="flex flex-col">
-			<h2>Top Section</h2>
+			<h2 className="text-[25px] font-bold text-primary p-2">Top Section</h2>
 			<div className="flex">
 				<Image src="/logo/top.png" alt="logo" width={320} height={120} />
 				<Image src="/logo/top.png" alt="logo" width={320} height={120} />
