@@ -76,17 +76,7 @@ async function downloadStoryContent(url, log, type) {
 				],
 			};
 
-			const epubBuffer = await new Promise((resolve, reject) => {
-				new Epub(epubOptions).promise.then(
-					() => {
-						const buffer = fs.readFileSync('Fanfic_Story.epub');
-						resolve(buffer);
-					},
-					(error) => {
-						reject(error);
-					}
-				);
-			});
+			const epubBuffer = await Epub.Buffer(epubOptions);
 
 			return { buffer: epubBuffer, contentType: 'application/epub+zip' };
 		} else {
