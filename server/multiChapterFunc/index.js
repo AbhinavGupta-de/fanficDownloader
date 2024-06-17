@@ -1,6 +1,11 @@
 import { execSync } from 'child_process';
 import puppeteer from 'puppeteer';
 import Epub from 'epub-gen';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+
+const readFile = promisify(fs.readFile);
 
 let installed = false;
 
