@@ -76,7 +76,10 @@ async function downloadStoryContent(url, log, type) {
 				],
 			};
 
-			const epubBuffer = await Epub.Buffer(epubOptions);
+			const outputPath = path.join('/tmp', 'story.epub');
+			await new Epub(epubOptions, outputPath).promise;
+
+			const epubBuffer = await readFile(outputPath);
 
 			return { buffer: epubBuffer, contentType: 'application/epub+zip' };
 		} else {
