@@ -10,6 +10,7 @@
 	"author": "Abhinav Gupta",
 	"license": "ISC",
 	"dependencies": {
+		"epub-gen": "^0.1.0",
 		"puppeteer": "^22.10.0"
 	}
 }
