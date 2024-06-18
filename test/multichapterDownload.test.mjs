@@ -49,5 +49,5 @@ async function generateAndSaveEPUB() {
 	}
 }
 
-// generateAndSavePDF();
+generateAndSavePDF();
 generateAndSaveEPUB();

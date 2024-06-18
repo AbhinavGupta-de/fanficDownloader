@@ -1,27 +1,40 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 
-async function generateAndSavePDF() {
+async function generateAndSaveFile(type) {
 	try {
+		console.log(
+			`Starting the process to generate a ${type.toUpperCase()} file...`
+		);
+
 		const response = await fetch(
-			'https://66614fabac01bd29afbd.appwrite.global/',
+			'https://66707abeeafd1f8178e8.appwrite.global/',
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					url: 'https://archiveofourown.org/works/25830817',
+					type: type,
 				}),
 			}
 		);
 
-		const pdfBuffer = await response.buffer();
+		if (!response.ok) {
+			const errorText = await response.text();
+			throw new Error(`Failed to fetch: ${response.status} - ${errorText}`);
+		}
 
-		fs.writeFileSync('generated-pdf.pdf', pdfBuffer);
+		const buffer = await response.buffer();
+		const fileName =
+			type === 'epub' ? 'generated-epub.epub' : 'generated-pdf.pdf';
 
-		console.log('PDF generated and saved successfully.');
+		fs.writeFileSync(fileName, buffer);
+
+		console.log(`${fileName} generated and saved successfully.`);
 	} catch (error) {
-		console.error('Error:', error);
+		console.error('Error during file generation:', error);
 	}
 }
 
-generateAndSavePDF();
+// generateAndSaveFile('pdf');
+generateAndSaveFile('epub');
