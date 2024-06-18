@@ -47,27 +47,42 @@ async function getSeriesContent(url, log) {
 		}
 	}
 
-	while (true) {
-		// Get the content of the current story
-		const entireWorkLink = await page.$('li.chapter.entire a');
-		if (entireWorkLink) {
-			const entireWorkUrl = await page.evaluate(
+	// Handle the series page
+	if (isSeriesPage || page.url().includes('/series/')) {
+		while (true) {
+			// Get the first story in the series
+			const firstStoryLink = await page.$('ul.series li h4.heading a');
+			if (!firstStoryLink) {
+				break;
+			}
+			const firstStoryUrl = await page.evaluate(
 				(link) => link.href,
-				entireWorkLink
+				firstStoryLink
 			);
-			await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
-		}
+			await page.goto(firstStoryUrl, { waitUntil: 'networkidle2' });
 
-		const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-		storiesContent.push(storyContent);
+			// Navigate to the entire work if available
+			const entireWorkLink = await page.$('li.chapter.entire a');
+			if (entireWorkLink) {
+				const entireWorkUrl = await page.evaluate(
+					(link) => link.href,
+					entireWorkLink
+				);
+				await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
+			}
 
-		// Go to the next story in the series
-		const nextLink = await page.$('span.series a.next');
-		if (nextLink) {
-			const nextUrl = await page.evaluate((link) => link.href, nextLink);
-			await page.goto(nextUrl, { waitUntil: 'networkidle2' });
-		} else {
-			break;
+			// Get the content of the current story
+			const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
+			storiesContent.push(storyContent);
+
+			// Go to the next story in the series
+			const nextLink = await page.$('span.series a.next');
+			if (nextLink) {
+				const nextUrl = await page.evaluate((link) => link.href, nextLink);
+				await page.goto(nextUrl, { waitUntil: 'networkidle2' });
+			} else {
+				break;
+			}
 		}
 	}
 
