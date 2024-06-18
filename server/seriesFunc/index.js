@@ -19,10 +19,12 @@ async function getSeriesContent(url, log) {
 	await page.setCacheEnabled(false);
 	await page.goto(url, { waitUntil: 'networkidle2' });
 
+	// Check if the URL is a series or chapter page
 	const isSeriesPage = url.includes('/series/');
 	let storiesContent = [];
 
 	if (!isSeriesPage) {
+		// If it's a chapter page, navigate to the entire work and then to the series page
 		const entireWorkLink = await page.$('li.chapter.entire a');
 		if (entireWorkLink) {
 			const entireWorkUrl = await page.evaluate(
@@ -30,19 +32,23 @@ async function getSeriesContent(url, log) {
 				entireWorkLink
 			);
 			await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
-		}
-
-		const seriesLinkElement = await page.$('.series .position a');
-		if (seriesLinkElement) {
-			const seriesLink = await page.evaluate(
-				(link) => link.href,
-				seriesLinkElement
-			);
-			await page.goto(seriesLink, { waitUntil: 'networkidle2' });
+		} else {
+			// If "entire work" link is not present, it means there's only one chapter
+			const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
+			storiesContent.push(storyContent);
+			const seriesLinkElement = await page.$('.series .position a');
+			if (seriesLinkElement) {
+				const seriesLink = await page.evaluate(
+					(link) => link.href,
+					seriesLinkElement
+				);
+				await page.goto(seriesLink, { waitUntil: 'networkidle2' });
+			}
 		}
 	}
 
 	while (true) {
+		// Get the content of the current story
 		const entireWorkLink = await page.$('li.chapter.entire a');
 		if (entireWorkLink) {
 			const entireWorkUrl = await page.evaluate(
