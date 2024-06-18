@@ -3,7 +3,7 @@ import fs from 'fs';
 
 async function generateAndSaveSeriesPDF() {
 	try {
-		const response = await fetch('', {
+		const response = await fetch('https://6671437b55829c7796ce.appwrite.global', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
@@ -24,7 +24,7 @@ async function generateAndSaveSeriesPDF() {
 
 async function generateAndSaveSeriesEPUB() {
 	try {
-		const response = await fetch('', {
+		const response = await fetch('https://6671437b55829c7796ce.appwrite.global', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify({
