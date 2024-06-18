@@ -76,7 +76,7 @@ async function getSeriesContent(url, log) {
 			storiesContent.push(storyContent);
 
 			// Go to the next story in the series
-			const nextLink = await page.$('span.series a.next');
+			const nextLink = await page.$('span.divider a.next');
 			if (nextLink) {
 				const nextUrl = await page.evaluate((link) => link.href, nextLink);
 				await page.goto(nextUrl, { waitUntil: 'networkidle2' });
