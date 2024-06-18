@@ -3,11 +3,15 @@
 import { fetchSingleChapter } from './fetchSingleChapter';
 import { fetchMultiChapter } from './fetchWholeStory';
 
-export async function fetchStory(type: string, url: string): Promise<void> {
+export async function fetchStory(
+	type: string,
+	url: string,
+	downloadType: string
+): Promise<void> {
 	if (type === 'single') {
-		await fetchSingleChapter(url);
+		await fetchSingleChapter(url, downloadType);
 	} else if (type === 'multi') {
-		await fetchMultiChapter(url);
+		await fetchMultiChapter(url, downloadType);
 	} else {
 		console.error('Invalid story type:', type);
 	}

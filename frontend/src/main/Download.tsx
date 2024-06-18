@@ -5,9 +5,14 @@ const Download: React.FC = () => {
 	const [type, setType] = useState('single');
 	const [url, setUrl] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [downloadType, setDownloadType] = useState('pdf');
 
 	const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		setType(e.target.value);
+	};
+
+	const handleDownloadType = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		setDownloadType(e.target.value);
 	};
 
 	const handleDownload = async () => {
@@ -26,7 +31,7 @@ const Download: React.FC = () => {
 		if (url && url.includes('archiveofourown.org')) {
 			setLoading(true);
 			try {
-				await fetchStory(type, url);
+				await fetchStory(type, url, downloadType);
 			} finally {
 				setLoading(false);
 			}
@@ -41,7 +46,7 @@ const Download: React.FC = () => {
 				</div>
 			) : (
 				<>
-					<div className="flex justify-center items-center">
+					<div className="flex justify-center items-center gap-2">
 						<select
 							className="p-2 bg-secondary rounded-md font-medium text-lg"
 							onChange={handleTypeChange}
@@ -49,6 +54,14 @@ const Download: React.FC = () => {
 							<option value="single">Single Chapter</option>
 							<option value="multi">Full Story</option>
 							<option value="series">Whole Series</option>
+						</select>
+
+						<select
+							className="p-2 bg-secondary rounded-md font-medium text-lg"
+							onChange={handleDownloadType}
+						>
+							<option value="pdf">PDF</option>
+							<option value="epub">EPUB</option>
 						</select>
 					</div>
 					<div className="flex justify-center items-center">

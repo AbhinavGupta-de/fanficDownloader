@@ -1,10 +1,13 @@
 import axios from 'axios';
 
-export async function fetchMultiChapter(url: string): Promise<void> {
+export async function fetchMultiChapter(
+	url: string,
+	downloadType: string
+): Promise<void> {
 	try {
 		const response = await axios.post(
 			'https://6661df0a82b533cdfb2e.appwrite.global/',
-			{ url },
+			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
 
@@ -13,7 +16,7 @@ export async function fetchMultiChapter(url: string): Promise<void> {
 
 		chrome.downloads.download({
 			url: pdfUrl,
-			filename: 'multi_chapter.pdf'
+			filename: 'multi_chapter.pdf',
 		});
 
 		URL.revokeObjectURL(pdfUrl);
