@@ -19,21 +19,30 @@ async function getSeriesContent(url, log) {
 	await page.setCacheEnabled(false);
 	await page.goto(url, { waitUntil: 'networkidle2' });
 
-	// If we are on a chapter page, navigate to the series page
-	const seriesLink = await page.evaluate(() => {
-		const seriesElement = document.querySelector('.series a');
-		return seriesElement ? seriesElement.href : null;
-	});
+	const isSeriesPage = url.includes('/series/');
+	let storiesContent = [];
 
-	if (seriesLink) {
-		await page.goto(seriesLink, { waitUntil: 'networkidle2' });
+	if (!isSeriesPage) {
+		const entireWorkLink = await page.$('li.chapter.entire a');
+		if (entireWorkLink) {
+			const entireWorkUrl = await page.evaluate(
+				(link) => link.href,
+				entireWorkLink
+			);
+			await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
+		}
+
+		const seriesLinkElement = await page.$('.series .position a');
+		if (seriesLinkElement) {
+			const seriesLink = await page.evaluate(
+				(link) => link.href,
+				seriesLinkElement
+			);
+			await page.goto(seriesLink, { waitUntil: 'networkidle2' });
+		}
 	}
 
-	const storiesContent = [];
-
-	let hasNext = true;
-	while (hasNext) {
-		// Get content of the current story
+	while (true) {
 		const entireWorkLink = await page.$('li.chapter.entire a');
 		if (entireWorkLink) {
 			const entireWorkUrl = await page.evaluate(
@@ -52,7 +61,7 @@ async function getSeriesContent(url, log) {
 			const nextUrl = await page.evaluate((link) => link.href, nextLink);
 			await page.goto(nextUrl, { waitUntil: 'networkidle2' });
 		} else {
-			hasNext = false;
+			break;
 		}
 	}
 
