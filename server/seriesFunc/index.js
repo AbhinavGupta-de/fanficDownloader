@@ -53,12 +53,14 @@ async function getSeriesContent(url, log) {
 			// Get the first story in the series
 			const firstStoryLink = await page.$('ul.series li h4.heading a');
 			if (!firstStoryLink) {
+				log('No more stories found in the series.');
 				break;
 			}
 			const firstStoryUrl = await page.evaluate(
 				(link) => link.href,
 				firstStoryLink
 			);
+			log(`Navigating to story URL: ${firstStoryUrl}`);
 			await page.goto(firstStoryUrl, { waitUntil: 'networkidle2' });
 
 			// Navigate to the entire work if available
@@ -68,6 +70,7 @@ async function getSeriesContent(url, log) {
 					(link) => link.href,
 					entireWorkLink
 				);
+				log(`Navigating to entire work URL: ${entireWorkUrl}`);
 				await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
 			}
 
@@ -77,11 +80,12 @@ async function getSeriesContent(url, log) {
 
 			// Go to the next story in the series
 			const nextLink = await page.$('span.series a.next');
-			log('Next link: ' + nextLink);
 			if (nextLink) {
 				const nextUrl = await page.evaluate((link) => link.href, nextLink);
+				log(`Navigating to next story URL: ${nextUrl}`);
 				await page.goto(nextUrl, { waitUntil: 'networkidle2' });
 			} else {
+				log('No more "next" links found. Reached the end of the series.');
 				break;
 			}
 		}
