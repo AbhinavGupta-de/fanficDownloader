@@ -140,7 +140,7 @@ async function generateCombinedEpub(contentArray, log) {
 	};
 
 	const outputPath = path.join('/tmp', 'series.epub');
-	await new Epub(epubOptions, outputPath).promise;
+	await new Epub(epubOptions, outputPath).promise();
 
 	const epubBuffer = await readFile(outputPath);
 	log('EPUB generated successfully');
