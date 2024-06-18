@@ -84,15 +84,18 @@ export default async ({ req, res, log }) => {
 
 		if (!url) {
 			log('No URL provided');
-			return res.status(400).json({ error: 'URL is required' });
+			return res.send({ error: 'URL is required' }, 400, {
+				'Content-Type': 'application/json',
+			});
 		}
 
 		if (!type) {
 			log('No type provided');
-			return res.status(400).json({ error: 'Type is required' });
+			return res.send({ error: 'Type is required' }, 400, {
+				'Content-Type': 'application/json',
+			});
 		}
 
-		// Install Chromium and dependencies if not installed
 		if (!installed) {
 			log('Installing Chromium and dependencies');
 			execSync(
@@ -119,13 +122,12 @@ export default async ({ req, res, log }) => {
 			contentType = 'application/epub+zip';
 		} else {
 			log('Unsupported file type requested');
-			return res.status(400).json({ error: 'Unsupported file type requested' });
+			return res.send({ error: 'Unsupported file type requested' }, 400);
 		}
 
-		res.setHeader('Content-Type', contentType);
-		return res.status(200).send(buffer);
+		return res.send(buffer, 200, { 'Content-Type': contentType });
 	} catch (err) {
 		log(`Error occurred: ${err}`);
-		return res.status(500).json({ error: err.toString() });
+		return res.send({ error: err.toString() }, 500);
 	}
 };
