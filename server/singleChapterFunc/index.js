@@ -122,7 +122,8 @@ export default async ({ req, res, log }) => {
 			return res.status(400).json({ error: 'Unsupported file type requested' });
 		}
 
-		return res.status(200).send(buffer, { 'Content-Type': contentType });
+		res.setHeader('Content-Type', contentType);
+		return res.status(200).send(buffer);
 	} catch (err) {
 		log(`Error occurred: ${err}`);
 		return res.status(500).json({ error: err.toString() });
