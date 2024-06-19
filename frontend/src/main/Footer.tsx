@@ -7,7 +7,7 @@ const Footer = () => {
 
 	const handleWebsiteClick = () => {
 		chrome.tabs.create({
-			url: '',
+			url: 'https://fanfic-downloader.vercel.app',
 		});
 	};
 
