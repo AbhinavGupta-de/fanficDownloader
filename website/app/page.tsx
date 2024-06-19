@@ -1,4 +1,6 @@
+import Contact from '@/components/Contact';
 import DownloadSection from '@/components/DownloadSection';
+import Features from '@/components/Features';
 import LinkSection from '@/components/LinkSection';
 import MainSection from '@/components/MainSection';
 import Toolbar from '@/components/Toolbar';
@@ -12,6 +14,8 @@ const Home = () => {
 			<MainSection />
 			<DownloadSection />
 			<LinkSection />
+			<Features />
+			<Contact />
 		</div>
 	);
 };
