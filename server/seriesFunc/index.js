@@ -9,85 +9,111 @@ const readFile = promisify(fs.readFile);
 
 let installed = false;
 
-async function getSeriesContent(url, log) {
-	const browser = await puppeteer.launch({
+async function launchBrowser() {
+	return puppeteer.launch({
 		executablePath: '/usr/bin/chromium-browser',
 		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
 	});
-	const page = await browser.newPage();
+}
 
-	await page.setCacheEnabled(false);
+async function navigateToPage(page, url) {
 	await page.goto(url, { waitUntil: 'networkidle2' });
+}
 
-	// Check if the URL is a series or chapter page
-	const isSeriesPage = url.includes('/series/');
-	let storiesContent = [];
+async function fetchStoryContent(page, log) {
+	const entireWorkLink = await page.$('li.chapter.entire a');
+	if (entireWorkLink) {
+		const entireWorkUrl = await page.evaluate(
+			(link) => link.href,
+			entireWorkLink
+		);
+		log(`Navigating to entire work URL: ${entireWorkUrl}`);
+		await navigateToPage(page, entireWorkUrl);
+	}
 
-	if (!isSeriesPage) {
-		// If it's a chapter page, navigate to the entire work and then to the series page
-		const entireWorkLink = await page.$('li.chapter.entire a');
-		if (entireWorkLink) {
-			const entireWorkUrl = await page.evaluate(
+	const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
+	log(`Fetched story content of length: ${storyContent.length}`);
+	return storyContent;
+}
+
+async function handleSingleChapterPage(page, url, log) {
+	const storiesContent = [];
+	await navigateToPage(page, url);
+
+	const entireWorkLink = await page.$('li.chapter.entire a');
+	if (entireWorkLink) {
+		const entireWorkUrl = await page.evaluate(
+			(link) => link.href,
+			entireWorkLink
+		);
+		await navigateToPage(page, entireWorkUrl);
+	} else {
+		const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
+		storiesContent.push(storyContent);
+		const seriesLinkElement = await page.$('.series .position a');
+		if (seriesLinkElement) {
+			const seriesLink = await page.evaluate(
 				(link) => link.href,
-				entireWorkLink
+				seriesLinkElement
 			);
-			await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
-		} else {
-			// If "entire work" link is not present, it means there's only one chapter
-			const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-			storiesContent.push(storyContent);
-			const seriesLinkElement = await page.$('.series .position a');
-			if (seriesLinkElement) {
-				const seriesLink = await page.evaluate(
-					(link) => link.href,
-					seriesLinkElement
-				);
-				await page.goto(seriesLink, { waitUntil: 'networkidle2' });
-			}
+			await navigateToPage(page, seriesLink);
 		}
 	}
 
-	// Handle the series page
-	if (isSeriesPage || page.url().includes('/series/')) {
-		while (true) {
-			// Get the first story in the series
-			const firstStoryLink = await page.$('ul.series li h4.heading a');
-			if (!firstStoryLink) {
-				log('No more stories found in the series.');
-				break;
-			}
-			const firstStoryUrl = await page.evaluate(
-				(link) => link.href,
-				firstStoryLink
+	return storiesContent;
+}
+
+async function handleSeriesPage(page, url, log) {
+	const storiesContent = [];
+	await navigateToPage(page, url);
+
+	while (true) {
+		const firstStoryLink = await page.$('ul.series li h4.heading a');
+		if (!firstStoryLink) {
+			log('No more stories found in the series.');
+			break;
+		}
+
+		const firstStoryUrl = await page.evaluate(
+			(link) => link.href,
+			firstStoryLink
+		);
+		log(`Navigating to story URL: ${firstStoryUrl}`);
+		await navigateToPage(page, firstStoryUrl);
+
+		const storyContent = await fetchStoryContent(page, log);
+		storiesContent.push(storyContent);
+
+		const nextLink = await page.$('span.series a.next');
+		if (nextLink) {
+			const nextUrl = await page.evaluate((link) => link.href, nextLink);
+			log(`Navigating to next story URL: ${nextUrl}`);
+			await navigateToPage(page, nextUrl);
+		} else {
+			log('No more "next" links found. Reached the end of the series.');
+			break;
+		}
+	}
+
+	return storiesContent;
+}
+
+async function getSeriesContent(url, log) {
+	const browser = await launchBrowser();
+	const page = await browser.newPage();
+	await page.setCacheEnabled(false);
+
+	let storiesContent = [];
+
+	if (url.includes('/series/')) {
+		storiesContent = await handleSeriesPage(page, url, log);
+	} else {
+		storiesContent = await handleSingleChapterPage(page, url, log);
+		if (page.url().includes('/series/')) {
+			const seriesUrl = page.url();
+			storiesContent = storiesContent.concat(
+				await handleSeriesPage(page, seriesUrl, log)
 			);
-			log(`Navigating to story URL: ${firstStoryUrl}`);
-			await page.goto(firstStoryUrl, { waitUntil: 'networkidle2' });
-
-			// Navigate to the entire work if available
-			const entireWorkLink = await page.$('li.chapter.entire a');
-			if (entireWorkLink) {
-				const entireWorkUrl = await page.evaluate(
-					(link) => link.href,
-					entireWorkLink
-				);
-				log(`Navigating to entire work URL: ${entireWorkUrl}`);
-				await page.goto(entireWorkUrl, { waitUntil: 'networkidle2' });
-			}
-
-			// Get the content of the current story
-			const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-			storiesContent.push(storyContent);
-
-			// Go to the next story in the series
-			const nextLink = await page.$('span.series a.next');
-			if (nextLink) {
-				const nextUrl = await page.evaluate((link) => link.href, nextLink);
-				log(`Navigating to next story URL: ${nextUrl}`);
-				await page.goto(nextUrl, { waitUntil: 'networkidle2' });
-			} else {
-				log('No more "next" links found. Reached the end of the series.');
-				break;
-			}
 		}
 	}
 
@@ -96,13 +122,10 @@ async function getSeriesContent(url, log) {
 }
 
 async function generateCombinedPdf(contentArray, log) {
-	const browser = await puppeteer.launch({
-		executablePath: '/usr/bin/chromium-browser',
-		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
-	});
+	const browser = await launchBrowser();
 	const page = await browser.newPage();
-
 	await page.setCacheEnabled(false);
+
 	const combinedContent = contentArray.join(
 		'<div style="page-break-before: always;"></div>'
 	);
@@ -140,7 +163,7 @@ async function generateCombinedEpub(contentArray, log) {
 	};
 
 	const outputPath = path.join('/tmp', 'series.epub');
-	await new Epub(epubOptions, outputPath).promise();
+	await new Epub(epubOptions, outputPath).promise;
 
 	const epubBuffer = await readFile(outputPath);
 	log('EPUB generated successfully');
