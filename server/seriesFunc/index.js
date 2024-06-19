@@ -55,7 +55,7 @@ async function handleSingleChapterPage(page, url, log) {
 	if (nextLink) {
 		const nextUrl = await page.evaluate((link) => link.href, nextLink);
 		log(`Navigating to next story URL: ${nextUrl}`);
-		const nextStoryContent = await handleSeriesPage(page, nextUrl, log);
+		const nextStoryContent = await handleSingleChapterPage(page, nextUrl, log);
 		storiesContent.push(...nextStoryContent);
 	} else {
 		log('No more stories found in the series.');
