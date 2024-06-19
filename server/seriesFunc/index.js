@@ -68,30 +68,16 @@ async function handleSeriesPage(page, url, log) {
 	const storiesContent = [];
 	await navigateToPage(page, url);
 
-	while (true) {
-		const firstStoryLink = await page.$('ul.series li h4.heading a');
-		if (!firstStoryLink) {
-			log('No more stories found in the series.');
-			break;
-		}
-		const firstStoryUrl = await page.evaluate(
-			(link) => link.href,
-			firstStoryLink
-		);
-
-		log(`Navigating to story URL: ${firstStoryUrl}`);
-		const storyContent = await handleSingleChapterPage(page, firstStoryUrl, log);
-		storiesContent.push(...storyContent);
-
-		const nextLink = await page.$('span.series a.next');
-		if (!nextLink) {
-			log('No more "next" links found. Reached the end of the series.');
-			break;
-		}
-		const nextUrl = await page.evaluate((link) => link.href, nextLink);
-		log(`Navigating to next story URL: ${nextUrl}`);
-		await navigateToPage(page, nextUrl);
+	const firstStoryLink = await page.$('ul.series li h4.heading a');
+	if (!firstStoryLink) {
+		log('No more stories found in the series.');
+		return storiesContent;
 	}
+	const firstStoryUrl = await page.evaluate((link) => link.href, firstStoryLink);
+
+	log(`Navigating to story URL: ${firstStoryUrl}`);
+	const storyContent = await handleSingleChapterPage(page, firstStoryUrl, log);
+	storiesContent.push(...storyContent);
 
 	return storiesContent;
 }
