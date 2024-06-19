@@ -20,22 +20,6 @@ async function navigateToPage(page, url) {
 	await page.goto(url, { waitUntil: 'networkidle2' });
 }
 
-async function fetchStoryContent(page, log) {
-	const entireWorkLink = await page.$('li.chapter.entire a');
-	if (entireWorkLink) {
-		const entireWorkUrl = await page.evaluate(
-			(link) => link.href,
-			entireWorkLink
-		);
-		log(`Navigating to entire work URL: ${entireWorkUrl}`);
-		await navigateToPage(page, entireWorkUrl);
-	}
-
-	const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-	log(`Fetched story content of length: ${storyContent.length}`);
-	return storyContent;
-}
-
 async function handleSingleChapterPage(page, url, log) {
 	const storiesContent = [];
 	await navigateToPage(page, url);
@@ -47,17 +31,18 @@ async function handleSingleChapterPage(page, url, log) {
 			entireWorkLink
 		);
 		await navigateToPage(page, entireWorkUrl);
+	}
+
+	const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
+	storiesContent.push(storyContent);
+	const nextLink = await page.$('span.series a.next');
+	if (nextLink) {
+		const nextUrl = await page.evaluate((link) => link.href, nextLink);
+		log(`Navigating to next story URL: ${nextUrl}`);
+		await navigateToPage(page, nextUrl);
+		storiesContent.push(handleSeriesPage(page, nextUrl, log));
 	} else {
-		const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-		storiesContent.push(storyContent);
-		const seriesLinkElement = await page.$('.series .position a');
-		if (seriesLinkElement) {
-			const seriesLink = await page.evaluate(
-				(link) => link.href,
-				seriesLinkElement
-			);
-			await navigateToPage(page, seriesLink);
-		}
+		log('No more stories found in the series.');
 	}
 
 	return storiesContent;
@@ -66,35 +51,20 @@ async function handleSingleChapterPage(page, url, log) {
 async function handleSeriesPage(page, url, log) {
 	const storiesContent = [];
 	await navigateToPage(page, url);
-
 	while (true) {
 		const firstStoryLink = await page.$('ul.series li h4.heading a');
 		if (!firstStoryLink) {
 			log('No more stories found in the series.');
 			break;
 		}
-
 		const firstStoryUrl = await page.evaluate(
 			(link) => link.href,
 			firstStoryLink
 		);
+
 		log(`Navigating to story URL: ${firstStoryUrl}`);
-		await navigateToPage(page, firstStoryUrl);
-
-		const storyContent = await fetchStoryContent(page, log);
-		storiesContent.push(storyContent);
-
-		const nextLink = await page.$('span.series a.next');
-		if (nextLink) {
-			const nextUrl = await page.evaluate((link) => link.href, nextLink);
-			log(`Navigating to next story URL: ${nextUrl}`);
-			await navigateToPage(page, nextUrl);
-		} else {
-			log('No more "next" links found. Reached the end of the series.');
-			break;
-		}
+		storiesContent.push(handleSingleChapterPage(page, firstStoryUrl, log));
 	}
-
 	return storiesContent;
 }
 
@@ -109,12 +79,6 @@ async function getSeriesContent(url, log) {
 		storiesContent = await handleSeriesPage(page, url, log);
 	} else {
 		storiesContent = await handleSingleChapterPage(page, url, log);
-		if (page.url().includes('/series/')) {
-			const seriesUrl = page.url();
-			storiesContent = storiesContent.concat(
-				await handleSeriesPage(page, seriesUrl, log)
-			);
-		}
 	}
 
 	await browser.close();
@@ -187,7 +151,6 @@ export default async ({ req, res, log }) => {
 			return res.send({ error: 'Type is required' }, 400);
 		}
 
-		// Install Chromium and dependencies if not installed
 		if (!installed) {
 			log('Installing Chromium and dependencies');
 			execSync(
