@@ -46,3 +46,13 @@ If you want to contribute to the project, you can open an issue or a pull reques
 > [!NOTE]
 >
 > > A discord server will be created soon for the project. You can join it to discuss the project.
+
+## Architecture
+
+The original idea was something like this
+
+![Architecture](/assets/old.png)
+
+But later on I decided to use appwrite serverless functions for the backend. So, the architecture is now like this
+
+![Architecture](/assets/new.png)
