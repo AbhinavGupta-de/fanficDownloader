@@ -49,5 +49,5 @@ async function generateAndSaveSeriesEPUB() {
 	}
 }
 
-generateAndSaveSeriesPDF();
-// generateAndSaveSeriesEPUB();
+// generateAndSaveSeriesPDF();
+generateAndSaveSeriesEPUB();
