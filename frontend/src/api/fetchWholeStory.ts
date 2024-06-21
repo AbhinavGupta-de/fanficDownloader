@@ -6,7 +6,7 @@ export async function fetchMultiChapter(
 ): Promise<void> {
 	try {
 		const response = await axios.post(
-			'https://667070bb2a3290c88cfb.appwrite.global/',
+			'https://6661df0a82b533cdfb2e.appwrite.global/',
 			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);

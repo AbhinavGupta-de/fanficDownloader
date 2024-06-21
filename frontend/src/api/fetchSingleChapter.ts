@@ -7,7 +7,7 @@ export async function fetchSingleChapter(
 	console.log('Downloading single chapter...');
 	try {
 		const response = await axios.post(
-			'https://66707abeeafd1f8178e8.appwrite.global/',
+			'https://66614fabac01bd29afbd.appwrite.global/',
 			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
