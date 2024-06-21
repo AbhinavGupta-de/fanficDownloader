@@ -2,6 +2,36 @@
 
 This is chrome extension that allows you to download fanfics from archiveofourown.org. It is a work in progress that's being developed by a single person. If you have any suggestions or feedback, feel free to open an issue or a pull request.
 
+### Getting Started
+
+To get started with the development of this Chrome extension:
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/AbhinavGupta-de/fanficDownloader.git
+cd frontend
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Build the extension:
+
+```bash
+npm run build
+```
+
+5. Load the extension in Chrome:
+6. Open Chrome and go to chrome://extensions/.
+7. Enable "Developer mode".
+8. Click on "Load unpacked" and select the dist directory.
+
+This will load your Chrome extension and you can start using it for development and testing.
+
 ## Architecture
 
 This is the frontend part of the extension. The backend part is in the [backend](../backend) folder. The frontend is built using Vite + React + Tailwind and the backend is built using appwrite serverless functions.
@@ -37,43 +67,3 @@ package.json                        // NPM package file
 ## Contributing
 
 If you want to contribute to the project, you can open an issue or a pull request. If you are opening a pull request, please try to follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
-
-### Getting Started
-
-To get started with the development of this Chrome extension:
-
-1. Clone the repository:
-
-```bash
-Copy code
-git clone <repository-url>
-cd <repository-directory>
-```
-
-2. Install dependencies:
-
-```bash
-Copy code
-npm install
-```
-
-3. Run the development server:
-
-```bash
-Copy code
-npm run dev
-```
-
-4. Build the extension:
-
-```bash
-Copy code
-npm run build
-```
-
-5. Load the extension in Chrome:
-6. Open Chrome and go to chrome://extensions/.
-7. Enable "Developer mode".
-8. Click on "Load unpacked" and select the dist directory.
-
-This will load your Chrome extension and you can start using it for development and testing.
