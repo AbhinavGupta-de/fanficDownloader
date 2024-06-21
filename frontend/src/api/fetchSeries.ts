@@ -6,7 +6,7 @@ export async function fetchSeries(
 ): Promise<void> {
 	try {
 		const response = await axios.post(
-			'https://6661df0a82b533cdfb2e.appwrite.global/',
+			'https://6671437b55829c7796ce.appwrite.global',
 			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
