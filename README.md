@@ -28,16 +28,30 @@ If you also want to run the backend yourself, then it's a bit more complicated a
 - Download the story as a pdf
 - Download the story from archiveofourown.org
 
+### v2.0.0(current)
+
+- Download the story as an epub
+- Download whole series from archiveofourown.org
+- Website and easy contact
+
 ### Upcoming features
 
 - Download the story from fanfiction.net
-- Download the story as an epub
-- Website to report bugs and suggest features
-- Download whole series from archiveofourown.org
+- Discord server(if the need arose)
+- Support Button
+- Request a feature button
 
 ## Contributing
 
-If you want to contribute to the project, you can open an issue or a pull request. If you are opening a pull request, please try to follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
+If you want to contribute to the project, you can open an issue or a pull request.
+
+- First clone the repository and then choose which side you want to contribute to.
+- If you want to contribute to the frontend, then go to the `frontend` folder and follow the installation steps.
+- If you want to contribute to the backend, then go to the `server` folder and follow the installation steps.
+- If you want to contribute to the website then go to the `website` folder and follow the installation steps.
+- If you want to help in writing better and effective tests then go to the `test` folder and follow the installation steps.
+
+If you are opening a pull request, please try to follow the [conventional commits](https://www.conventionalcommits.org/en/v1.0.0/) format.
 
 > [!TIP]
 >
@@ -46,3 +60,13 @@ If you want to contribute to the project, you can open an issue or a pull reques
 > [!NOTE]
 >
 > > A discord server will be created soon for the project. You can join it to discuss the project.
+
+## Architecture
+
+The original idea was something like this
+
+![Architecture](/assets/old.png)
+
+But later on I decided to use appwrite serverless functions for the backend. So, the architecture is now like this
+
+![Architecture](/assets/new.png)

@@ -1,15 +1,15 @@
 import fetch from 'node-fetch';
 import fs from 'fs';
 
-async function generateAndSavePDF() {
+async function generateAndSaveSeriesPDF() {
 	try {
 		const response = await fetch(
-			'https://667070bb2a3290c88cfb.appwrite.global/',
+			'https://6671437b55829c7796ce.appwrite.global/',
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					url: 'https://archiveofourown.org/works/56434537/chapters/143401636',
+					url: 'https://archiveofourown.org/series/4201915',
 					type: 'pdf',
 				}),
 			}
@@ -17,23 +17,23 @@ async function generateAndSavePDF() {
 
 		const pdfBuffer = await response.buffer();
 
-		fs.writeFileSync('generated-pdf.pdf', pdfBuffer);
+		fs.writeFileSync('series-generated-pdf.pdf', pdfBuffer);
 
-		console.log('PDF generated and saved successfully.');
+		console.log('Series PDF generated and saved successfully.');
 	} catch (error) {
 		console.error('Error:', error);
 	}
 }
 
-async function generateAndSaveEPUB() {
+async function generateAndSaveSeriesEPUB() {
 	try {
 		const response = await fetch(
-			'https://667070bb2a3290c88cfb.appwrite.global/',
+			'https://6671437b55829c7796ce.appwrite.global/',
 			{
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
-					url: 'https://archiveofourown.org/works/56434537/chapters/143401636',
+					url: 'https://archiveofourown.org/series/4201915',
 					type: 'epub',
 				}),
 			}
@@ -41,13 +41,13 @@ async function generateAndSaveEPUB() {
 
 		const epubBuffer = await response.buffer();
 
-		fs.writeFileSync('generated-epub.epub', epubBuffer);
+		fs.writeFileSync('series-generated-epub.epub', epubBuffer);
 
-		console.log('EPUB generated and saved successfully.');
+		console.log('Series EPUB generated and saved successfully.');
 	} catch (error) {
 		console.error('Error:', error);
 	}
 }
 
-generateAndSavePDF();
-generateAndSaveEPUB();
+// generateAndSaveSeriesPDF();
+generateAndSaveSeriesEPUB();

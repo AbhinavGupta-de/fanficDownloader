@@ -1,11 +1,14 @@
 import axios from 'axios';
 
-export async function fetchSingleChapter(url: string): Promise<void> {
+export async function fetchSingleChapter(
+	url: string,
+	downloadType: string
+): Promise<void> {
 	console.log('Downloading single chapter...');
 	try {
 		const response = await axios.post(
 			'https://66614fabac01bd29afbd.appwrite.global/',
-			{ url },
+			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
 
@@ -16,7 +19,7 @@ export async function fetchSingleChapter(url: string): Promise<void> {
 
 		chrome.downloads.download({
 			url: pdfUrl,
-			filename: 'single_chapter.pdf'
+			filename: 'single_chapter.pdf',
 		});
 
 		URL.revokeObjectURL(pdfUrl);

@@ -1,5 +1,11 @@
 import { execSync } from 'child_process';
 import puppeteer from 'puppeteer';
+import Epub from 'epub-gen';
+import fs from 'fs';
+import path from 'path';
+import { promisify } from 'util';
+
+const readFile = promisify(fs.readFile);
 
 let installed = false;
 
@@ -11,29 +17,85 @@ async function getChapterContent(url, log) {
 	const page = await browser.newPage();
 
 	await page.setCacheEnabled(false);
-
 	await page.goto(url, { waitUntil: 'networkidle2' });
 
 	const chapterContent = await page.$eval('#workskin', (div) => div.innerHTML);
-
 	await browser.close();
 	return chapterContent;
+}
+
+async function generatePdf(content, log) {
+	const browser = await puppeteer.launch({
+		executablePath: '/usr/bin/chromium-browser',
+		args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+	});
+	const page = await browser.newPage();
+
+	await page.setCacheEnabled(false);
+	await page.setContent(content);
+	log('Content set successfully');
+
+	const pdfBuffer = await page.pdf({
+		format: 'A4',
+		margin: {
+			top: '20mm',
+			bottom: '20mm',
+			left: '20mm',
+			right: '20mm',
+		},
+		displayHeaderFooter: true,
+		headerTemplate:
+			'<div style="font-size: 10px; text-align: center; width: 100%; display: flex;">Downloaded using fanfic downloader</div>',
+		footerTemplate:
+			'<div style="font-size: 10px; text-align: center;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
+	});
+
+	await browser.close();
+	log('PDF generated successfully');
+	return pdfBuffer;
+}
+
+async function generateEpub(content, log) {
+	const epubOptions = {
+		title: 'Fanfic Story',
+		author: 'Unknown',
+		content: [
+			{
+				title: 'Story',
+				data: content,
+			},
+		],
+	};
+
+	const outputPath = path.join('/tmp', 'story.epub');
+	await new Epub(epubOptions, outputPath).promise;
+
+	const epubBuffer = await readFile(outputPath);
+	log('EPUB generated successfully');
+	return epubBuffer;
 }
 
 export default async ({ req, res, log }) => {
 	try {
 		log('Function invoked');
-		log(`Request object: ${req}`);
+		log(`Request object: ${JSON.stringify(req.body)}`);
 
-		const { url } = req.body;
-		log(`Parsed URL: ${url}`);
+		const { url, type } = req.body;
 
 		if (!url) {
 			log('No URL provided');
-			return res.json({ error: 'URL is required' }, 400);
+			return res.send({ error: 'URL is required' }, 400, {
+				'Content-Type': 'application/json',
+			});
 		}
 
-		// Install Chromium and dependencies if not installed
+		if (!type) {
+			log('No type provided');
+			return res.send({ error: 'Type is required' }, 400, {
+				'Content-Type': 'application/json',
+			});
+		}
+
 		if (!installed) {
 			log('Installing Chromium and dependencies');
 			execSync(
@@ -49,42 +111,23 @@ export default async ({ req, res, log }) => {
 		const chapterContent = await getChapterContent(url, log);
 		log('Content fetched successfully');
 
-		const browser = await puppeteer.launch({
-			executablePath: '/usr/bin/chromium-browser',
-			args: [
-				'--no-sandbox',
-				'--disable-setuid-sandbox',
-				'--disable-dev-shm-usage',
-			],
-		});
-		const page = await browser.newPage();
+		let buffer;
+		let contentType;
 
-		await page.setCacheEnabled(false);
+		if (type === 'pdf') {
+			buffer = await generatePdf(chapterContent, log);
+			contentType = 'application/pdf';
+		} else if (type === 'epub') {
+			buffer = await generateEpub(chapterContent, log);
+			contentType = 'application/epub+zip';
+		} else {
+			log('Unsupported file type requested');
+			return res.send({ error: 'Unsupported file type requested' }, 400);
+		}
 
-		await page.setContent(chapterContent);
-		log('Content set successfully');
-
-		const pdfBuffer = await page.pdf({
-			format: 'A4',
-			margin: {
-				top: '20mm',
-				bottom: '20mm',
-				left: '20mm',
-				right: '20mm',
-			},
-			displayHeaderFooter: true,
-			headerTemplate:
-				'<div style="font-size: 10px; text-align: center; width: 100%; display: flex;">Downloaded using fanfic downloader</div>',
-			footerTemplate:
-				'<div style="font-size: 10px; text-align: center;">Page <span class="pageNumber"></span> of <span class="totalPages"></span></div>',
-		});
-
-		await browser.close();
-		log('PDF generated successfully');
-
-		return res.send(pdfBuffer, 200, { 'Content-Type': 'application/pdf' });
+		return res.send(buffer, 200, { 'Content-Type': contentType });
 	} catch (err) {
 		log(`Error occurred: ${err}`);
-		return res.json({ error: err.toString() }, 500);
+		return res.send({ error: err.toString() }, 500);
 	}
 };

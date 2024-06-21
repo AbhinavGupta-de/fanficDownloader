@@ -4,10 +4,12 @@ import React from 'react';
 const MainSection = () => {
 	return (
 		<div className="flex flex-col">
-			<h2 className="text-[25px] font-bold text-primary p-2">Top Section</h2>
-			<div className="flex">
+			<h2 className="text-[25px] font-bold text-primary p-2 font-writing">
+				Top Section
+			</h2>
+			<div className="flex gap-2">
 				<Image src="/logo/top.png" alt="logo" width={320} height={120} />
-				<Image src="/logo/top.png" alt="logo" width={320} height={120} />
+				<Image src="/logo/story.png" alt="logo" width={320} height={120} />
 			</div>
 			<p>
 				This is header and top section of the extension, as above shown in the
