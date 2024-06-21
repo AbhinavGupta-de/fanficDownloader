@@ -1,39 +1,40 @@
 import axios from 'axios';
 
-export async function fetchMultiChapter(
+export async function fetchSeries(
 	url: string,
 	downloadType: string
 ): Promise<void> {
 	try {
 		const response = await axios.post(
-			'https://667070bb2a3290c88cfb.appwrite.global/',
+			'https://6661df0a82b533cdfb2e.appwrite.global/',
 			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
 
-		let blob;
-		let fileName;
+		let mimeType = '';
+		let fileExtension = '';
 
 		if (downloadType === 'pdf') {
-			blob = new Blob([response.data], { type: 'application/pdf' });
-			fileName = 'multi_chapter.pdf';
+			mimeType = 'application/pdf';
+			fileExtension = 'pdf';
 		} else if (downloadType === 'epub') {
-			blob = new Blob([response.data], { type: 'application/epub+zip' });
-			fileName = 'multi_chapter.epub';
+			mimeType = 'application/epub+zip';
+			fileExtension = 'epub';
 		} else {
 			throw new Error('Unsupported download type');
 		}
 
+		const blob = new Blob([response.data], { type: mimeType });
 		const downloadUrl = URL.createObjectURL(blob);
 
 		chrome.downloads.download({
 			url: downloadUrl,
-			filename: fileName,
+			filename: `series.${fileExtension}`,
 		});
 
 		URL.revokeObjectURL(downloadUrl);
 	} catch (error) {
-		console.error('Error fetching multi-chapter:', error);
+		console.error('Error fetching series:', error);
 		throw error;
 	}
 }
