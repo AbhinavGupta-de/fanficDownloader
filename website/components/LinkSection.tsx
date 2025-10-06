@@ -2,18 +2,27 @@ import Image from 'next/image';
 import React from 'react';
 
 const LinkSection = () => {
-	return (
-		<div className="flex flex-col gap-2">
-			<h1 className="text-[25px] font-bold text-primary p-2 font-writing">
-				Links
-			</h1>
-			<Image src="/logo/links.png" alt="footer" width={280} height={120} />
-			<p>
-				This section contains links to different things like this is an open source
-				extension so link to the GitHub repo.
-			</p>
-		</div>
-	);
+        return (
+                <section className="section-card" data-testid="link-section">
+                        <h2 className="heading-primary" data-testid="link-section-heading">
+                                Links
+                        </h2>
+                        <div className="image-container mb-6" data-testid="link-section-image-container">
+                                <Image 
+                                        src="/logo/links.png" 
+                                        alt="Extension links section" 
+                                        width={280} 
+                                        height={120}
+                                        className="w-full h-auto"
+                                        data-testid="link-section-image"
+                                />
+                        </div>
+                        <p className="text-content" data-testid="link-section-description">
+                                This section contains links to different things like this is an open source
+                                extension so link to the GitHub repo.
+                        </p>
+                </section>
+        );
 };
 
 export default LinkSection;
