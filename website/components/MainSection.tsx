@@ -40,8 +40,8 @@ const MainSection = () => {
                                         <li className="flex items-start" data-testid="main-section-list-item-2">
                                                 <span className="text-primary mr-2">•</span>
                                                 <span>
-                                                        The other one is sad bunny image and text "Sorry, we don't have what you are
-                                                        looking for...".
+                                                        The other one is sad bunny image and text &quot;Sorry, we don&apos;t have what you are
+                                                        looking for...&quot;.
                                                 </span>
                                         </li>
                                 </ul>
