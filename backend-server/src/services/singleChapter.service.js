@@ -1,5 +1,5 @@
 /**
- * Service for downloading a single chapter from AO3
+ * Service for downloading a single chapter from AO3 or FFN
  */
 import puppeteer from 'puppeteer';
 import Epub from 'epub-gen';
@@ -8,28 +8,36 @@ import path from 'path';
 import { promisify } from 'util';
 import logger from '../utils/logger.js';
 import { getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
+import { getScraper, detectSite } from '../scrapers/index.js';
 
 const readFile = promisify(fs.readFile);
 
 /**
- * Fetches chapter content from AO3
- * @param {string} url - The AO3 chapter URL
+ * Fetches chapter content from AO3 or FFN
+ * @param {string} url - The chapter URL
  * @returns {Promise<string>} - The chapter HTML content
  */
 async function getChapterContent(url) {
   const browser = await puppeteer.launch(getBrowserConfig());
   const page = await browser.newPage();
+  const site = detectSite(url);
+  const scraper = getScraper(url);
 
   try {
     await page.setCacheEnabled(false);
+    // Set user agent to avoid bot detection
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    const chapterContent = await page.$eval('#workskin', (div) => div.innerHTML);
-    logger.info('Chapter content fetched successfully', { contentLength: chapterContent.length });
-    
+    const chapterContent = await scraper.getSingleChapterContent(page);
+    logger.info('Chapter content fetched successfully', {
+      site,
+      contentLength: chapterContent.length
+    });
+
     return chapterContent;
   } catch (error) {
-    logger.error('Failed to fetch chapter content', { error: error.message, url });
+    logger.error('Failed to fetch chapter content', { error: error.message, url, site });
     throw new Error(`Failed to fetch chapter content: ${error.message}`);
   } finally {
     await browser.close();

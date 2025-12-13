@@ -1,5 +1,5 @@
 /**
- * Service for downloading multiple chapters (entire work) from AO3
+ * Service for downloading multiple chapters (entire work) from AO3 or FFN
  */
 import puppeteer from 'puppeteer';
 import Epub from 'epub-gen';
@@ -8,31 +8,12 @@ import path from 'path';
 import { promisify } from 'util';
 import logger from '../utils/logger.js';
 import { getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
+import { getScraper, detectSite } from '../scrapers/index.js';
 
 const readFile = promisify(fs.readFile);
 
 /**
- * Fetches HTML content from a page
- * @param {string} url - The URL to fetch
- * @returns {Promise<string>} - The HTML content
- */
-async function getHtmlContent(url) {
-  const browser = await puppeteer.launch(getBrowserConfig());
-  const page = await browser.newPage();
-
-  try {
-    await page.setCacheEnabled(false);
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-    const content = await page.$eval('#workskin', (div) => div.innerHTML);
-    
-    return content;
-  } finally {
-    await browser.close();
-  }
-}
-
-/**
- * Downloads entire story content
+ * Downloads entire story content from AO3 or FFN
  * @param {string} url - The story URL
  * @param {string} type - The output type (pdf or epub)
  * @returns {Promise<{buffer: Buffer, contentType: string}>}
@@ -40,38 +21,24 @@ async function getHtmlContent(url) {
 async function downloadStoryContent(url, type) {
   const browser = await puppeteer.launch(getBrowserConfig());
   const page = await browser.newPage();
+  const site = detectSite(url);
+  const scraper = getScraper(url);
 
   try {
     await page.setCacheEnabled(false);
+    // Set user agent to avoid bot detection
+    await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    // Check if there's an "Entire Work" link and navigate to it
-    const entireWorkLink = await page.$('li.chapter.entire a');
-    if (entireWorkLink) {
-      const entireWorkUrl = await page.evaluate(
-        (link) => link.getAttribute('href'),
-        entireWorkLink
-      );
-      
-      if (!entireWorkUrl) {
-        throw new Error('Entire Work link does not have a valid URL');
-      }
-      
-      logger.info('Navigating to entire work', { url: entireWorkUrl });
-      await page.goto(`https://archiveofourown.org${entireWorkUrl}`, {
-        waitUntil: 'networkidle2',
-        timeout: 60000
-      });
-    }
-
-    const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-    logger.info('Story content fetched', { contentLength: storyContent.length });
+    // Use site-specific scraper to get multi-chapter content
+    const storyContent = await scraper.getMultiChapterContent(page, url);
+    logger.info('Story content fetched', { site, contentLength: storyContent.length });
 
     if (type === 'pdf') {
       await page.setContent(storyContent);
 
       const pdfBuffer = await page.pdf(getPdfOptions());
-      logger.info('PDF generated for multi-chapter story');
+      logger.info('PDF generated for multi-chapter story', { site });
 
       return { buffer: pdfBuffer, contentType: 'application/pdf' };
     } else if (type === 'epub') {
@@ -90,7 +57,7 @@ async function downloadStoryContent(url, type) {
       await new Epub(epubOptions, outputPath).promise;
 
       const epubBuffer = await readFile(outputPath);
-      logger.info('EPUB generated for multi-chapter story');
+      logger.info('EPUB generated for multi-chapter story', { site });
 
       // Clean up temporary file
       fs.unlinkSync(outputPath);
@@ -100,7 +67,7 @@ async function downloadStoryContent(url, type) {
       throw new Error('Unsupported file type requested');
     }
   } catch (error) {
-    logger.error('Failed to download story', { error: error.message, url });
+    logger.error('Failed to download story', { error: error.message, url, site });
     throw new Error(`Failed to download story: ${error.message}`);
   } finally {
     await browser.close();
@@ -109,12 +76,13 @@ async function downloadStoryContent(url, type) {
 
 /**
  * Main service function to download multiple chapters
- * @param {string} url - The AO3 story URL
+ * @param {string} url - The story URL (AO3 or FFN)
  * @param {string} type - The output type (pdf or epub)
  * @returns {Promise<{buffer: Buffer, contentType: string}>}
  */
 export async function downloadMultiChapter(url, type) {
-  logger.info('Starting multi-chapter download', { url, type });
+  const site = detectSite(url);
+  logger.info('Starting multi-chapter download', { url, type, site });
 
   if (!url) {
     throw new Error('URL is required');

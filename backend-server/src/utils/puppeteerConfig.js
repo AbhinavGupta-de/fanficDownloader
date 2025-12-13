@@ -3,19 +3,24 @@
  */
 
 export const getBrowserConfig = () => {
-  return {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium-browser',
+  const config = {
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-gpu',
       '--no-first-run',
-      '--no-zygote',
-      '--single-process'
+      '--no-zygote'
     ],
     headless: true
   };
+
+  // Only set executablePath if explicitly provided (for Docker/CI environments)
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    config.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+  }
+
+  return config;
 };
 
 export const getPdfOptions = () => {

@@ -7,12 +7,14 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test:scraper": "node test/scraper.test.mjs",
+    "test:download": "node test/download.test.mjs"
   },
   "keywords": [
     "fanfiction",
     "downloader",
     "ao3",
+    "ffn",
     "epub",
     "pdf"
   ],
