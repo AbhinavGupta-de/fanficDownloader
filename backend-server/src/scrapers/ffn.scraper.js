@@ -88,8 +88,8 @@ async function getMultiChapterContent(page, url) {
         retries--;
         needsNavigation = true; // Force navigation on retry
         if (retries > 0) {
-          // Cloudflare challenge detected, wait longer and retry
-          await new Promise(resolve => setTimeout(resolve, 3000));
+          // Cloudflare challenge detected, wait much longer and retry
+          await new Promise(resolve => setTimeout(resolve, 8000 + Math.random() * 4000));
         } else {
           throw new Error(`Failed to load chapter ${i} after retries. FFN may be rate limiting requests.`);
         }
@@ -99,9 +99,9 @@ async function getMultiChapterContent(page, url) {
     const content = await page.$eval(SELECTORS.content, (div) => div.innerHTML);
     chapters.push(`<div class="chapter"><h2>Chapter ${i}</h2>${content}</div>`);
 
-    // Delay between chapters to avoid triggering Cloudflare (1.5-2.5 seconds random)
+    // Delay between chapters to avoid triggering Cloudflare (5-8 seconds random)
     if (i < totalChapters) {
-      const delay = 1500 + Math.random() * 1000;
+      const delay = 5000 + Math.random() * 3000;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }

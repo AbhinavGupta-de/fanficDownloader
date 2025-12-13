@@ -8,6 +8,7 @@ import path from 'path';
 import { promisify } from 'util';
 import logger from '../utils/logger.js';
 import { getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
+import ao3Scraper from '../scrapers/ao3.scraper.js';
 
 const readFile = promisify(fs.readFile);
 
@@ -20,12 +21,14 @@ async function launchBrowser() {
 }
 
 /**
- * Navigates to a page
+ * Navigates to a page and handles AO3 prompts (TOS, adult content warnings)
  * @param {Page} page - Puppeteer page
  * @param {string} url - URL to navigate to
  */
 async function navigateToPage(page, url) {
   await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
+  // Handle any AO3 prompts (TOS consent, adult content warnings)
+  await ao3Scraper.handleAllPrompts(page);
 }
 
 /**
@@ -95,7 +98,7 @@ async function handleSeriesPage(page, url) {
   const storiesContent = [];
   await navigateToPage(page, url);
 
-  const firstStoryLink = await page.$('ul.series li h4.heading a');
+  const firstStoryLink = await page.$('ul.series li.work h4.heading a');
   if (!firstStoryLink) {
     logger.info('No stories found in the series');
     return storiesContent;
@@ -119,6 +122,7 @@ async function getSeriesContent(url) {
   const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.setCacheEnabled(false);
+  await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
   let storiesContent = [];
 

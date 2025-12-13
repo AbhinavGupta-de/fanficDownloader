@@ -65,25 +65,47 @@ async function handleTosPrompt(page) {
  * Handle adult content warning page
  * AO3 shows an intermediate page for works marked as adult content
  * @param {import('puppeteer').Page} page - Puppeteer page
+ * @returns {Promise<boolean>} true if adult warning was handled (page navigated)
  */
 async function handleAdultContentWarning(page) {
   try {
     // Check if we're on an adult content warning page
     const adultWarning = await page.$('h2.landmark.heading');
-    if (!adultWarning) return;
+    if (!adultWarning) return false;
 
     const headerText = await page.$eval('h2.landmark.heading', el => el.textContent);
-    if (!headerText.includes('Adult Content Warning')) return;
+    if (!headerText.includes('Adult Content Warning')) return false;
 
-    // Find and click the "Yes, Continue" link
+    // Get the continue link href and navigate directly
     const continueLink = await page.$('a[href*="view_adult=true"]');
     if (continueLink) {
-      await continueLink.click();
-      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+      const href = await page.evaluate(el => el.getAttribute('href'), continueLink);
+      if (href) {
+        // Navigate directly to the URL (more reliable than clicking)
+        const fullUrl = href.startsWith('http') ? href : `${BASE_URL}${href}`;
+        await page.goto(fullUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+        return true; // Page navigated, TOS may appear again
+      }
     }
   } catch (e) {
     // Adult warning handling failed, continue anyway
   }
+  return false;
+}
+
+/**
+ * Handle all AO3 prompts (TOS and adult content warnings)
+ * This should be called after any navigation to AO3 pages
+ * @param {import('puppeteer').Page} page - Puppeteer page
+ */
+async function handleAllPrompts(page) {
+  // Check for adult content warning FIRST (it appears immediately)
+  // Handle adult content warning (may navigate to new page)
+  const navigated = await handleAdultContentWarning(page);
+
+  // If we navigated through adult warning, we need to handle TOS on new page
+  // If we didn't navigate, we still need to handle TOS on current page
+  await handleTosPrompt(page);
 }
 
 /**
@@ -92,11 +114,8 @@ async function handleAdultContentWarning(page) {
  * @returns {Promise<string>} HTML content
  */
 async function getSingleChapterContent(page) {
-  // Handle TOS prompt if present
-  await handleTosPrompt(page);
-
-  // Handle adult content warning if present
-  await handleAdultContentWarning(page);
+  // Handle all prompts (TOS and adult content)
+  await handleAllPrompts(page);
 
   // Wait for content element to appear (handles dynamic loading)
   await page.waitForSelector(SELECTORS.content, { timeout: 30000 });
@@ -129,14 +148,21 @@ async function getEntireWorkUrl(page) {
  * @returns {Promise<string>} HTML content of entire story
  */
 async function getMultiChapterContent(page, url) {
+  // Handle all prompts first (TOS and adult content)
+  await handleAllPrompts(page);
+
   // Check if there's an "Entire Work" link
   const entireWorkUrl = await getEntireWorkUrl(page);
 
   if (entireWorkUrl) {
     await page.goto(entireWorkUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+    // Handle any prompts on the new page as well
+    await handleAllPrompts(page);
   }
 
-  return await getSingleChapterContent(page);
+  // Wait for content element and return
+  await page.waitForSelector(SELECTORS.content, { timeout: 30000 });
+  return await page.$eval(SELECTORS.content, (div) => div.innerHTML);
 }
 
 /**
@@ -168,6 +194,7 @@ export default {
   getEntireWorkUrl,
   getMultiChapterContent,
   getMetadata,
+  handleAllPrompts,
   SELECTORS,
   BASE_URL
 };
