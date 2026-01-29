@@ -11,15 +11,27 @@ export async function fetchMultiChapter(
 			{ responseType: 'arraybuffer' }
 		);
 
-		const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
-		const pdfUrl = URL.createObjectURL(pdfBlob);
+		let blob;
+		let fileName;
+
+		if (downloadType === 'pdf') {
+			blob = new Blob([response.data], { type: 'application/pdf' });
+			fileName = 'multi_chapter.pdf';
+		} else if (downloadType === 'epub') {
+			blob = new Blob([response.data], { type: 'application/epub+zip' });
+			fileName = 'multi_chapter.epub';
+		} else {
+			throw new Error('Unsupported download type');
+		}
+
+		const downloadUrl = URL.createObjectURL(blob);
 
 		chrome.downloads.download({
-			url: pdfUrl,
-			filename: 'multi_chapter.pdf',
+			url: downloadUrl,
+			filename: fileName,
 		});
 
-		URL.revokeObjectURL(pdfUrl);
+		URL.revokeObjectURL(downloadUrl);
 	} catch (error) {
 		console.error('Error fetching multi-chapter:', error);
 		throw error;

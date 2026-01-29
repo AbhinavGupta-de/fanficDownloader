@@ -10,9 +10,18 @@ export const getBrowserConfig = () => {
       '--disable-dev-shm-usage',
       '--disable-gpu',
       '--no-first-run',
-      '--no-zygote'
+      '--no-zygote',
+      // Anti-detection flags for Cloudflare
+      '--disable-blink-features=AutomationControlled',
+      '--disable-features=IsolateOrigins,site-per-process',
+      '--window-size=1920,1080'
     ],
-    headless: true
+    headless: process.env.HEADLESS === 'false' ? false : 'new',
+    // Use 'new' headless mode which is harder to detect
+    defaultViewport: {
+      width: 1920,
+      height: 1080
+    }
   };
 
   // Only set executablePath if explicitly provided (for Docker/CI environments)

@@ -1,5 +1,4 @@
-// need a function that takes two paramters, singl/multi/series and the url of the story and call the function based on that
-
+import { fetchSeries } from './fetchSeries';
 import { fetchSingleChapter } from './fetchSingleChapter';
 import { fetchMultiChapter } from './fetchWholeStory';
 
@@ -12,6 +11,8 @@ export async function fetchStory(
 		await fetchSingleChapter(url, downloadType);
 	} else if (type === 'multi') {
 		await fetchMultiChapter(url, downloadType);
+	} else if (type === 'series') {
+		await fetchSeries(url, downloadType);
 	} else {
 		console.error('Invalid story type:', type);
 	}

@@ -1,42 +1,40 @@
 import axios from 'axios';
 
-export async function fetchSingleChapter(
+export async function fetchSeries(
 	url: string,
 	downloadType: string
 ): Promise<void> {
-	console.log('Downloading single chapter...');
 	try {
 		const response = await axios.post(
-			'https://66614fabac01bd29afbd.appwrite.global/',
+			'https://6671437b55829c7796ce.appwrite.global',
 			{ url, type: downloadType },
 			{ responseType: 'arraybuffer' }
 		);
 
-		console.log('got the download...');
-
-		let blob;
-		let fileName;
+		let mimeType = '';
+		let fileExtension = '';
 
 		if (downloadType === 'pdf') {
-			blob = new Blob([response.data], { type: 'application/pdf' });
-			fileName = 'single_chapter.pdf';
+			mimeType = 'application/pdf';
+			fileExtension = 'pdf';
 		} else if (downloadType === 'epub') {
-			blob = new Blob([response.data], { type: 'application/epub+zip' });
-			fileName = 'single_chapter.epub';
+			mimeType = 'application/epub+zip';
+			fileExtension = 'epub';
 		} else {
 			throw new Error('Unsupported download type');
 		}
 
+		const blob = new Blob([response.data], { type: mimeType });
 		const downloadUrl = URL.createObjectURL(blob);
 
 		chrome.downloads.download({
 			url: downloadUrl,
-			filename: fileName,
+			filename: `series.${fileExtension}`,
 		});
 
 		URL.revokeObjectURL(downloadUrl);
 	} catch (error) {
-		console.error('Error fetching single chapter:', error);
+		console.error('Error fetching series:', error);
 		throw error;
 	}
 }

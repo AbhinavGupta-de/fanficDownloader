@@ -8,10 +8,10 @@ const LinkSection = () => {
                                 Links
                         </h2>
                         <div className="image-container mb-6" data-testid="link-section-image-container">
-                                <Image 
-                                        src="/logo/links.png" 
-                                        alt="Extension links section" 
-                                        width={280} 
+                                <Image
+                                        src="/logo/links.png"
+                                        alt="Extension links section"
+                                        width={280}
                                         height={120}
                                         className="w-full h-auto"
                                         data-testid="link-section-image"

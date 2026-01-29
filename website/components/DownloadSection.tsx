@@ -8,10 +8,10 @@ const DownloadSection = () => {
                                 Download Section
                         </h2>
                         <div className="image-container mb-6" data-testid="download-section-main-image">
-                                <Image 
-                                        src="/logo/download.png" 
-                                        alt="Download button interface" 
-                                        width={320} 
+                                <Image
+                                        src="/logo/download.png"
+                                        alt="Download button interface"
+                                        width={320}
                                         height={120}
                                         className="w-full h-auto"
                                 />
@@ -29,10 +29,10 @@ const DownloadSection = () => {
                                 </p>
                                 <div className="flex flex-col md:flex-row gap-4 mt-6" data-testid="download-section-dropdown-images">
                                         <div className="image-container flex-1" data-testid="download-section-dropdown-image">
-                                                <Image 
-                                                        src="/logo/dropdown.png" 
-                                                        alt="Dropdown options" 
-                                                        width={200} 
+                                                <Image
+                                                        src="/logo/dropdown.png"
+                                                        alt="Dropdown options"
+                                                        width={200}
                                                         height={100}
                                                         className="w-full h-auto"
                                                 />

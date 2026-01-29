@@ -53,9 +53,32 @@ function buildChapterUrl(url, chapterNum) {
 }
 
 /**
+ * Get the current chapter number from URL
+ * @param {string} url - Story URL
+ * @returns {number} Current chapter number
+ */
+function getCurrentChapterFromUrl(url) {
+  const match = url.match(/\/s\/\d+\/(\d+)\//);
+  return match ? parseInt(match[1]) : 1;
+}
+
+/**
+ * Navigate to a chapter using the dropdown selector (more natural than URL navigation)
+ * @param {import('puppeteer').Page} page - Puppeteer page
+ * @param {number} chapterNum - Chapter number to navigate to
+ * @returns {Promise<void>}
+ */
+async function navigateToChapterViaDropdown(page, chapterNum) {
+  // Select the chapter from dropdown - this triggers navigation
+  await page.select(SELECTORS.chapterSelect, chapterNum.toString());
+  // Wait for navigation to complete
+  await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
+}
+
+/**
  * Get multi-chapter content by iterating through all chapters
  * FFN has Cloudflare protection that may trigger on rapid requests.
- * Uses longer delays and retry logic to work around this.
+ * Uses dropdown navigation (more natural) and retry logic.
  * @param {import('puppeteer').Page} page - Puppeteer page
  * @param {string} url - Story URL
  * @returns {Promise<string>} Combined HTML content of all chapters
@@ -66,19 +89,27 @@ async function getMultiChapterContent(page, url) {
   // Get chapter count from current page (already loaded)
   const totalChapters = await getChapterCount(page);
 
-  for (let i = 1; i <= totalChapters; i++) {
-    const chapterUrl = buildChapterUrl(url, i);
+  // Check which chapter is currently loaded from URL
+  const currentChapter = getCurrentChapterFromUrl(url);
 
+  for (let i = 1; i <= totalChapters; i++) {
     // Retry logic for Cloudflare challenges
     let retries = 3;
     let success = false;
-    let needsNavigation = i > 1; // First chapter is already loaded
+    // Only skip navigation if we're on the correct chapter already
+    let needsNavigation = i !== currentChapter;
 
     while (retries > 0 && !success) {
       try {
         if (needsNavigation) {
-          // Navigate with longer delay to avoid Cloudflare
-          await page.goto(chapterUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+          // Try dropdown navigation first (looks more natural to Cloudflare)
+          try {
+            await navigateToChapterViaDropdown(page, i);
+          } catch (dropdownErr) {
+            // Fallback to URL navigation if dropdown fails
+            const chapterUrl = buildChapterUrl(url, i);
+            await page.goto(chapterUrl, { waitUntil: 'networkidle2', timeout: 60000 });
+          }
         }
 
         // Wait for content - if Cloudflare challenge, this will timeout

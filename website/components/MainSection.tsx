@@ -9,19 +9,19 @@ const MainSection = () => {
                         </h2>
                         <div className="flex flex-col md:flex-row gap-4 mb-6" data-testid="main-section-images">
                                 <div className="image-container flex-1" data-testid="main-section-image-top">
-                                        <Image 
-                                                src="/logo/top.png" 
-                                                alt="Extension top view" 
-                                                width={320} 
+                                        <Image
+                                                src="/logo/top.png"
+                                                alt="Extension top view"
+                                                width={320}
                                                 height={120}
                                                 className="w-full h-auto"
                                         />
                                 </div>
                                 <div className="image-container flex-1" data-testid="main-section-image-story">
-                                        <Image 
-                                                src="/logo/story.png" 
-                                                alt="Story view" 
-                                                width={320} 
+                                        <Image
+                                                src="/logo/story.png"
+                                                alt="Story view"
+                                                width={320}
                                                 height={120}
                                                 className="w-full h-auto"
                                         />
