@@ -1,23 +1,22 @@
 /**
  * Service for downloading a single chapter from AO3 or FFN
  */
-import puppeteer from 'puppeteer';
+
 import Epub from 'epub-gen';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import logger from '../utils/logger.js';
-import { getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
+import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import { getScraper, detectSite } from '../scrapers/index.js';
+import type { DownloadFormat, DownloadResult } from '../types/index.js';
 
 const readFile = promisify(fs.readFile);
 
 /**
  * Fetches chapter content from AO3 or FFN
- * @param {string} url - The chapter URL
- * @returns {Promise<string>} - The chapter HTML content
  */
-async function getChapterContent(url) {
+async function getChapterContent(url: string): Promise<string> {
   const browser = await puppeteer.launch(getBrowserConfig());
   const page = await browser.newPage();
   const site = detectSite(url);
@@ -25,7 +24,6 @@ async function getChapterContent(url) {
 
   try {
     await page.setCacheEnabled(false);
-    // Set user agent to avoid bot detection
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
@@ -37,8 +35,9 @@ async function getChapterContent(url) {
 
     return chapterContent;
   } catch (error) {
-    logger.error('Failed to fetch chapter content', { error: error.message, url, site });
-    throw new Error(`Failed to fetch chapter content: ${error.message}`);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to fetch chapter content', { error: message, url, site });
+    throw new Error(`Failed to fetch chapter content: ${message}`);
   } finally {
     await browser.close();
   }
@@ -46,10 +45,8 @@ async function getChapterContent(url) {
 
 /**
  * Generates PDF from HTML content
- * @param {string} content - The HTML content
- * @returns {Promise<Buffer>} - The PDF buffer
  */
-async function generatePdf(content) {
+async function generatePdf(content: string): Promise<Buffer> {
   const browser = await puppeteer.launch(getBrowserConfig());
   const page = await browser.newPage();
 
@@ -60,11 +57,12 @@ async function generatePdf(content) {
 
     const pdfBuffer = await page.pdf(getPdfOptions());
     logger.info('PDF generated successfully', { size: pdfBuffer.length });
-    
-    return pdfBuffer;
+
+    return Buffer.from(pdfBuffer);
   } catch (error) {
-    logger.error('Failed to generate PDF', { error: error.message });
-    throw new Error(`Failed to generate PDF: ${error.message}`);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to generate PDF', { error: message });
+    throw new Error(`Failed to generate PDF: ${message}`);
   } finally {
     await browser.close();
   }
@@ -72,10 +70,8 @@ async function generatePdf(content) {
 
 /**
  * Generates EPUB from HTML content
- * @param {string} content - The HTML content
- * @returns {Promise<Buffer>} - The EPUB buffer
  */
-async function generateEpub(content) {
+async function generateEpub(content: string): Promise<Buffer> {
   try {
     const epubOptions = {
       title: 'Fanfic Story',
@@ -96,21 +92,19 @@ async function generateEpub(content) {
 
     // Clean up temporary file
     fs.unlinkSync(outputPath);
-    
+
     return epubBuffer;
   } catch (error) {
-    logger.error('Failed to generate EPUB', { error: error.message });
-    throw new Error(`Failed to generate EPUB: ${error.message}`);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    logger.error('Failed to generate EPUB', { error: message });
+    throw new Error(`Failed to generate EPUB: ${message}`);
   }
 }
 
 /**
  * Main service function to download a single chapter
- * @param {string} url - The AO3 chapter URL
- * @param {string} type - The output type (pdf or epub)
- * @returns {Promise<{buffer: Buffer, contentType: string}>}
  */
-export async function downloadSingleChapter(url, type) {
+export async function downloadSingleChapter(url: string, type: DownloadFormat): Promise<DownloadResult> {
   logger.info('Starting single chapter download', { url, type });
 
   if (!url) {
@@ -123,8 +117,8 @@ export async function downloadSingleChapter(url, type) {
 
   const chapterContent = await getChapterContent(url);
 
-  let buffer;
-  let contentType;
+  let buffer: Buffer;
+  let contentType: string;
 
   if (type === 'pdf') {
     buffer = await generatePdf(chapterContent);

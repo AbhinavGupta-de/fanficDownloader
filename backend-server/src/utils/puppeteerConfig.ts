@@ -1,9 +1,20 @@
 /**
  * Puppeteer configuration for browser launch
+ * Uses puppeteer-extra with stealth plugin for better anti-detection
  */
 
-export const getBrowserConfig = () => {
-  const config = {
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import type { PdfOptions } from '../types/index.js';
+import type { PuppeteerLaunchOptions } from 'puppeteer';
+
+// Add stealth plugin to avoid detection (Cloudflare, etc.)
+puppeteer.use(StealthPlugin());
+
+export { puppeteer };
+
+export const getBrowserConfig = (): PuppeteerLaunchOptions => {
+  const config: PuppeteerLaunchOptions = {
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -11,13 +22,10 @@ export const getBrowserConfig = () => {
       '--disable-gpu',
       '--no-first-run',
       '--no-zygote',
-      // Anti-detection flags for Cloudflare
       '--disable-blink-features=AutomationControlled',
-      '--disable-features=IsolateOrigins,site-per-process',
       '--window-size=1920,1080'
     ],
-    headless: process.env.HEADLESS === 'false' ? false : 'new',
-    // Use 'new' headless mode which is harder to detect
+    headless: process.env.HEADLESS === 'false' ? false : true,
     defaultViewport: {
       width: 1920,
       height: 1080
@@ -32,7 +40,7 @@ export const getBrowserConfig = () => {
   return config;
 };
 
-export const getPdfOptions = () => {
+export const getPdfOptions = (): PdfOptions => {
   return {
     format: 'A4',
     margin: {

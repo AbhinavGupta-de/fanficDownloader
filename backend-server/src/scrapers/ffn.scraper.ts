@@ -3,37 +3,34 @@
  * Handles content extraction from fanfiction.net
  */
 
+import type { Page } from 'puppeteer';
+import type { StoryMetadata } from '../types/index.js';
+
 const SELECTORS = {
   content: '#storytext',
   chapterSelect: 'select#chap_select',
   title: '#profile_top b.xcontrast_txt',
   author: '#profile_top a.xcontrast_txt'
-};
+} as const;
 
 /**
  * Extract single chapter content from page
- * @param {import('puppeteer').Page} page - Puppeteer page
- * @returns {Promise<string>} HTML content
  */
-async function getSingleChapterContent(page) {
-  // Wait for content element to appear (handles dynamic loading)
+async function getSingleChapterContent(page: Page): Promise<string> {
   await page.waitForSelector(SELECTORS.content, { timeout: 30000 });
   return await page.$eval(SELECTORS.content, (div) => div.innerHTML);
 }
 
 /**
  * Get total chapter count from the chapter dropdown
- * @param {import('puppeteer').Page} page - Puppeteer page
- * @returns {Promise<number>} Number of chapters (1 if single chapter)
  */
-async function getChapterCount(page) {
+async function getChapterCount(page: Page): Promise<number> {
   try {
-    // FFN has two chapter dropdowns (top and bottom), use the first one
     const count = await page.$eval(SELECTORS.chapterSelect, (select) => {
-      return select.options.length;
+      return (select as HTMLSelectElement).options.length;
     });
     return count;
-  } catch (e) {
+  } catch {
     // No chapter select means single chapter story
     return 1;
   }
@@ -42,84 +39,58 @@ async function getChapterCount(page) {
 /**
  * Build chapter URL from base URL and chapter number
  * FFN URL format: /s/{storyId}/{chapterNum}/{title}
- * @param {string} url - Base story URL
- * @param {number} chapterNum - Chapter number (1-indexed)
- * @returns {string} Full chapter URL
  */
-function buildChapterUrl(url, chapterNum) {
-  // URL format: https://www.fanfiction.net/s/12345/1/Story-Title
-  // Replace the chapter number in the URL
+function buildChapterUrl(url: string, chapterNum: number): string {
   return url.replace(/\/s\/(\d+)\/\d+\//, `/s/$1/${chapterNum}/`);
 }
 
 /**
  * Get the current chapter number from URL
- * @param {string} url - Story URL
- * @returns {number} Current chapter number
  */
-function getCurrentChapterFromUrl(url) {
+function getCurrentChapterFromUrl(url: string): number {
   const match = url.match(/\/s\/\d+\/(\d+)\//);
   return match ? parseInt(match[1]) : 1;
 }
 
 /**
- * Navigate to a chapter using the dropdown selector (more natural than URL navigation)
- * @param {import('puppeteer').Page} page - Puppeteer page
- * @param {number} chapterNum - Chapter number to navigate to
- * @returns {Promise<void>}
+ * Navigate to a chapter using the dropdown selector
  */
-async function navigateToChapterViaDropdown(page, chapterNum) {
-  // Select the chapter from dropdown - this triggers navigation
+async function navigateToChapterViaDropdown(page: Page, chapterNum: number): Promise<void> {
   await page.select(SELECTORS.chapterSelect, chapterNum.toString());
-  // Wait for navigation to complete
   await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
 }
 
 /**
  * Get multi-chapter content by iterating through all chapters
  * FFN has Cloudflare protection that may trigger on rapid requests.
- * Uses dropdown navigation (more natural) and retry logic.
- * @param {import('puppeteer').Page} page - Puppeteer page
- * @param {string} url - Story URL
- * @returns {Promise<string>} Combined HTML content of all chapters
  */
-async function getMultiChapterContent(page, url) {
-  const chapters = [];
-
-  // Get chapter count from current page (already loaded)
+async function getMultiChapterContent(page: Page, url: string): Promise<string> {
+  const chapters: string[] = [];
   const totalChapters = await getChapterCount(page);
-
-  // Check which chapter is currently loaded from URL
   const currentChapter = getCurrentChapterFromUrl(url);
 
   for (let i = 1; i <= totalChapters; i++) {
-    // Retry logic for Cloudflare challenges
     let retries = 3;
     let success = false;
-    // Only skip navigation if we're on the correct chapter already
     let needsNavigation = i !== currentChapter;
 
     while (retries > 0 && !success) {
       try {
         if (needsNavigation) {
-          // Try dropdown navigation first (looks more natural to Cloudflare)
           try {
             await navigateToChapterViaDropdown(page, i);
-          } catch (dropdownErr) {
-            // Fallback to URL navigation if dropdown fails
+          } catch {
             const chapterUrl = buildChapterUrl(url, i);
             await page.goto(chapterUrl, { waitUntil: 'networkidle2', timeout: 60000 });
           }
         }
 
-        // Wait for content - if Cloudflare challenge, this will timeout
         await page.waitForSelector(SELECTORS.content, { timeout: 10000 });
         success = true;
-      } catch (e) {
+      } catch {
         retries--;
-        needsNavigation = true; // Force navigation on retry
+        needsNavigation = true;
         if (retries > 0) {
-          // Cloudflare challenge detected, wait much longer and retry
           await new Promise(resolve => setTimeout(resolve, 8000 + Math.random() * 4000));
         } else {
           throw new Error(`Failed to load chapter ${i} after retries. FFN may be rate limiting requests.`);
@@ -130,36 +101,32 @@ async function getMultiChapterContent(page, url) {
     const content = await page.$eval(SELECTORS.content, (div) => div.innerHTML);
     chapters.push(`<div class="chapter"><h2>Chapter ${i}</h2>${content}</div>`);
 
-    // Delay between chapters to avoid triggering Cloudflare (5-8 seconds random)
     if (i < totalChapters) {
       const delay = 5000 + Math.random() * 3000;
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 
-  // Join chapters with page breaks
   return chapters.join('<div style="page-break-before: always;"></div>');
 }
 
 /**
  * Extract story metadata
- * @param {import('puppeteer').Page} page - Puppeteer page
- * @returns {Promise<{title: string, author: string}>}
  */
-async function getMetadata(page) {
+async function getMetadata(page: Page): Promise<StoryMetadata> {
   let title = 'Fanfic Story';
   let author = 'Unknown';
 
   try {
-    title = await page.$eval(SELECTORS.title, (el) => el.textContent.trim());
-  } catch (e) {
-    // Title not found, use default
+    title = await page.$eval(SELECTORS.title, (el) => el.textContent?.trim() || 'Fanfic Story');
+  } catch {
+    // Title not found
   }
 
   try {
-    author = await page.$eval(SELECTORS.author, (el) => el.textContent.trim());
-  } catch (e) {
-    // Author not found, use default
+    author = await page.$eval(SELECTORS.author, (el) => el.textContent?.trim() || 'Unknown');
+  } catch {
+    // Author not found
   }
 
   return { title, author };
@@ -171,5 +138,6 @@ export default {
   getMultiChapterContent,
   getMetadata,
   buildChapterUrl,
+  getCurrentChapterFromUrl,
   SELECTORS
 };

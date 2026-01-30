@@ -1,46 +1,42 @@
 /**
  * Service for downloading series from AO3
  */
-import puppeteer from 'puppeteer';
+
 import Epub from 'epub-gen';
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
 import logger from '../utils/logger.js';
-import { getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
+import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import ao3Scraper from '../scrapers/ao3.scraper.js';
+import type { Page, Browser } from 'puppeteer';
+import type { DownloadFormat, DownloadResult } from '../types/index.js';
 
 const readFile = promisify(fs.readFile);
 
 /**
  * Launches a puppeteer browser
- * @returns {Promise<Browser>}
  */
-async function launchBrowser() {
+async function launchBrowser(): Promise<Browser> {
   return puppeteer.launch(getBrowserConfig());
 }
 
 /**
- * Navigates to a page and handles AO3 prompts (TOS, adult content warnings)
- * @param {Page} page - Puppeteer page
- * @param {string} url - URL to navigate to
+ * Navigates to a page and handles AO3 prompts
  */
-async function navigateToPage(page, url) {
+async function navigateToPage(page: Page, url: string): Promise<void> {
   await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
-  // Handle any AO3 prompts (TOS consent, adult content warnings)
   await ao3Scraper.handleAllPrompts(page);
 }
 
 /**
  * Fetches story content from a page
- * @param {Page} page - Puppeteer page
- * @returns {Promise<string>}
  */
-async function fetchStoryContent(page) {
+async function fetchStoryContent(page: Page): Promise<string> {
   const entireWorkLink = await page.$('li.chapter.entire a');
   if (entireWorkLink) {
     const entireWorkUrl = await page.evaluate(
-      (link) => link.href,
+      (link) => (link as HTMLAnchorElement).href,
       entireWorkLink
     );
     logger.info('Navigating to entire work URL', { url: entireWorkUrl });
@@ -49,24 +45,21 @@ async function fetchStoryContent(page) {
 
   const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
   logger.info('Fetched story content', { contentLength: storyContent.length });
-  
+
   return storyContent;
 }
 
 /**
  * Handles single chapter page and recursively gets next stories
- * @param {Page} page - Puppeteer page
- * @param {string} url - Story URL
- * @returns {Promise<string[]>}
  */
-async function handleSingleChapterPage(page, url) {
-  const storiesContent = [];
+async function handleSingleChapterPage(page: Page, url: string): Promise<string[]> {
+  const storiesContent: string[] = [];
   await navigateToPage(page, url);
 
   const entireWorkLink = await page.$('li.chapter.entire a');
   if (entireWorkLink) {
     const entireWorkUrl = await page.evaluate(
-      (link) => link.href,
+      (link) => (link as HTMLAnchorElement).href,
       entireWorkLink
     );
     await navigateToPage(page, entireWorkUrl);
@@ -74,10 +67,10 @@ async function handleSingleChapterPage(page, url) {
 
   const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
   storiesContent.push(storyContent);
-  
+
   const nextLink = await page.$('span.series a.next');
   if (nextLink) {
-    const nextUrl = await page.evaluate((link) => link.href, nextLink);
+    const nextUrl = await page.evaluate((link) => (link as HTMLAnchorElement).href, nextLink);
     logger.info('Navigating to next story', { url: nextUrl });
     const nextStoryContent = await handleSingleChapterPage(page, nextUrl);
     storiesContent.push(...nextStoryContent);
@@ -90,12 +83,9 @@ async function handleSingleChapterPage(page, url) {
 
 /**
  * Handles series page
- * @param {Page} page - Puppeteer page
- * @param {string} url - Series URL
- * @returns {Promise<string[]>}
  */
-async function handleSeriesPage(page, url) {
-  const storiesContent = [];
+async function handleSeriesPage(page: Page, url: string): Promise<string[]> {
+  const storiesContent: string[] = [];
   await navigateToPage(page, url);
 
   const firstStoryLink = await page.$('ul.series li.work h4.heading a');
@@ -103,10 +93,10 @@ async function handleSeriesPage(page, url) {
     logger.info('No stories found in the series');
     return storiesContent;
   }
-  
-  const firstStoryUrl = await page.evaluate((link) => link.href, firstStoryLink);
+
+  const firstStoryUrl = await page.evaluate((link) => (link as HTMLAnchorElement).href, firstStoryLink);
   logger.info('Navigating to first story', { url: firstStoryUrl });
-  
+
   const storyContent = await handleSingleChapterPage(page, firstStoryUrl);
   storiesContent.push(...storyContent);
 
@@ -115,16 +105,14 @@ async function handleSeriesPage(page, url) {
 
 /**
  * Gets all series content
- * @param {string} url - Series or story URL
- * @returns {Promise<string[]>}
  */
-async function getSeriesContent(url) {
+async function getSeriesContent(url: string): Promise<string[]> {
   const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.setCacheEnabled(false);
   await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
 
-  let storiesContent = [];
+  let storiesContent: string[] = [];
 
   try {
     if (url.includes('/series/')) {
@@ -141,10 +129,8 @@ async function getSeriesContent(url) {
 
 /**
  * Generates combined PDF from content array
- * @param {string[]} contentArray - Array of HTML content
- * @returns {Promise<Buffer>}
  */
-async function generateCombinedPdf(contentArray) {
+async function generateCombinedPdf(contentArray: string[]): Promise<Buffer> {
   const browser = await launchBrowser();
   const page = await browser.newPage();
   await page.setCacheEnabled(false);
@@ -158,8 +144,8 @@ async function generateCombinedPdf(contentArray) {
 
     const pdfBuffer = await page.pdf(getPdfOptions());
     logger.info('Combined PDF generated successfully', { size: pdfBuffer.length });
-    
-    return pdfBuffer;
+
+    return Buffer.from(pdfBuffer);
   } finally {
     await browser.close();
   }
@@ -167,10 +153,8 @@ async function generateCombinedPdf(contentArray) {
 
 /**
  * Generates combined EPUB from content array
- * @param {string[]} contentArray - Array of HTML content
- * @returns {Promise<Buffer>}
  */
-async function generateCombinedEpub(contentArray) {
+async function generateCombinedEpub(contentArray: string[]): Promise<Buffer> {
   const epubOptions = {
     title: 'Fanfic Series',
     author: 'Unknown',
@@ -188,17 +172,14 @@ async function generateCombinedEpub(contentArray) {
 
   // Clean up temporary file
   fs.unlinkSync(outputPath);
-  
+
   return epubBuffer;
 }
 
 /**
  * Main service function to download a series
- * @param {string} url - The AO3 series URL
- * @param {string} type - The output type (pdf or epub)
- * @returns {Promise<{buffer: Buffer, contentType: string}>}
  */
-export async function downloadSeries(url, type) {
+export async function downloadSeries(url: string, type: DownloadFormat): Promise<DownloadResult> {
   logger.info('Starting series download', { url, type });
 
   if (!url) {
@@ -212,8 +193,8 @@ export async function downloadSeries(url, type) {
   const seriesContent = await getSeriesContent(url);
   logger.info('Series content fetched', { storiesCount: seriesContent.length });
 
-  let buffer;
-  let contentType;
+  let buffer: Buffer;
+  let contentType: string;
 
   if (type === 'pdf') {
     buffer = await generateCombinedPdf(seriesContent);

@@ -1,39 +1,58 @@
-#!/usr/bin/env node
+#!/usr/bin/env tsx
 /**
  * Config-based Test Runner
  *
- * Reads test configuration from test-config.json and runs enabled tests.
- *
  * Usage:
- *   node test/run-tests.mjs              # Run all enabled tests
- *   node test/run-tests.mjs --all        # Run all tests (ignore enabled flag)
- *   node test/run-tests.mjs --name "AO3" # Run tests matching name pattern
- *   node test/run-tests.mjs --index 0    # Run test at specific index
- *   node test/run-tests.mjs --direct     # Skip API, test scrapers directly
- *
- * Config file (test-config.json):
- *   stories[] - Array of test cases with:
- *     - name: Test description
- *     - url: Story URL (AO3 or FFN)
- *     - type: "pdf" or "epub"
- *     - mode: "single" or "multi"
- *     - enabled: true/false
- *   settings:
- *     - outputDir: Where to save downloaded files
- *     - apiUrl: Backend server URL
- *     - runAllEnabled: Run all enabled tests
- *     - stopOnFirstError: Stop on first failure
+ *   npm run test              # Run all enabled tests
+ *   npm run test:all          # Run all tests (ignore enabled flag)
+ *   npm run test:direct       # Skip API, test scrapers directly
  */
 
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import puppeteer from 'puppeteer';
 import { getScraper, detectSite, isSupportedSite } from '../src/scrapers/index.js';
-import { getBrowserConfig } from '../src/utils/puppeteerConfig.js';
+import { puppeteer, getBrowserConfig } from '../src/utils/puppeteerConfig.js';
+import type { StoryMetadata } from '../src/types/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const configPath = path.join(__dirname, 'test-config.json');
+
+interface TestConfig {
+  name: string;
+  url: string;
+  type: 'pdf' | 'epub';
+  mode: 'single' | 'multi';
+  enabled: boolean;
+  index?: number;
+}
+
+interface Settings {
+  outputDir: string;
+  apiUrl: string;
+  runAllEnabled: boolean;
+  stopOnFirstError: boolean;
+}
+
+interface Config {
+  stories: TestConfig[];
+  settings: Settings;
+}
+
+interface TestResult {
+  success: boolean;
+  duration: string;
+  name?: string;
+  filepath?: string;
+  size?: number;
+  error?: string;
+}
+
+interface DirectTestResult {
+  content: string;
+  metadata: StoryMetadata;
+  contentLength: number;
+}
 
 // Parse CLI args
 const args = process.argv.slice(2);
@@ -43,11 +62,11 @@ const namePattern = args.find((_, i) => args[i - 1] === '--name');
 const indexArg = args.find((_, i) => args[i - 1] === '--index');
 
 // Load config
-let config;
+let config: Config;
 try {
   config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
 } catch (error) {
-  console.error('Error loading config file:', error.message);
+  console.error('Error loading config file:', error instanceof Error ? error.message : 'Unknown error');
   console.error('Make sure test-config.json exists in the test directory');
   process.exit(1);
 }
@@ -61,7 +80,7 @@ if (!fs.existsSync(outputDir)) {
 }
 
 // Filter tests based on CLI args
-function getTestsToRun() {
+function getTestsToRun(): TestConfig[] {
   let tests = stories;
 
   if (indexArg !== undefined) {
@@ -85,11 +104,11 @@ function getTestsToRun() {
     tests = tests.filter(t => t.enabled);
   }
 
-  return tests.map((t, i) => ({ ...t, index: stories.indexOf(t) }));
+  return tests.map((t) => ({ ...t, index: stories.indexOf(t) }));
 }
 
 // Test via API endpoint
-async function testViaApi(test) {
+async function testViaApi(test: TestConfig): Promise<Buffer> {
   const endpoint = test.mode === 'multi' ? 'multi-chapter' : 'single-chapter';
   const apiEndpoint = `${settings.apiUrl}/api/download/${endpoint}`;
 
@@ -111,7 +130,7 @@ async function testViaApi(test) {
 }
 
 // Test directly (skip API)
-async function testDirect(test) {
+async function testDirect(test: TestConfig): Promise<DirectTestResult> {
   if (!isSupportedSite(test.url)) {
     throw new Error('Unsupported site');
   }
@@ -132,7 +151,7 @@ async function testDirect(test) {
     console.log(`  Navigating to URL...`);
     await page.goto(test.url, { waitUntil: 'networkidle2', timeout: 60000 });
 
-    let content;
+    let content: string;
     if (test.mode === 'multi') {
       console.log(`  Fetching multi-chapter content...`);
       content = await scraper.getMultiChapterContent(page, test.url);
@@ -142,10 +161,12 @@ async function testDirect(test) {
     }
 
     // Get metadata
-    let metadata = { title: 'Unknown', author: 'Unknown' };
+    let metadata: StoryMetadata = { title: 'Unknown', author: 'Unknown' };
     try {
       metadata = await scraper.getMetadata(page);
-    } catch (e) { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     return {
       content,
@@ -158,7 +179,7 @@ async function testDirect(test) {
 }
 
 // Run a single test
-async function runTest(test, index) {
+async function runTest(test: TestConfig, index: number): Promise<TestResult> {
   const testNum = index + 1;
   const startTime = Date.now();
 
@@ -210,13 +231,13 @@ async function runTest(test, index) {
     const duration = ((Date.now() - startTime) / 1000).toFixed(2);
     console.log('');
     console.log(`  ✗ FAILED (${duration}s)`);
-    console.log(`  Error: ${error.message}`);
-    return { success: false, duration, error: error.message };
+    console.log(`  Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    return { success: false, duration, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }
 
 // Main
-async function main() {
+async function main(): Promise<void> {
   console.log('');
   console.log('╔═══════════════════════════════════════════════╗');
   console.log('║         Fanfic Downloader Test Runner         ║');
@@ -241,7 +262,7 @@ async function main() {
 
   console.log(`Running ${tests.length} test(s)...`);
 
-  const results = [];
+  const results: TestResult[] = [];
   for (let i = 0; i < tests.length; i++) {
     const result = await runTest(tests[i], i);
     results.push({ ...result, name: tests[i].name });

@@ -31,3 +31,5 @@ Thumbs.db
 # Generated files
 *.epub
 *.pdf
+dist/
+*.js.map

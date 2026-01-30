@@ -2,16 +2,18 @@
   "name": "fanfic-downloader-backend",
   "version": "1.0.0",
   "description": "Backend server for Fanfic Downloader Chrome Extension",
-  "main": "src/server.js",
+  "main": "dist/server.js",
   "type": "module",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
-    "test:scraper": "node test/scraper.test.mjs",
-    "test:download": "node test/download.test.mjs",
-    "test": "node test/run-tests.mjs",
-    "test:all": "node test/run-tests.mjs --all",
-    "test:direct": "node test/run-tests.mjs --direct"
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "tsx watch src/server.ts",
+    "test:scraper": "tsx test/scraper.test.ts",
+    "test:download": "tsx test/download.test.ts",
+    "test": "tsx test/run-tests.ts",
+    "test:all": "tsx test/run-tests.ts --all",
+    "test:direct": "tsx test/run-tests.ts --direct",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "fanfiction",
@@ -24,12 +26,25 @@
   "author": "Abhinav Gupta",
   "license": "ISC",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "epub-gen": "^0.1.0",
-    "puppeteer": "^22.10.0",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "helmet": "^7.1.0"
+    "puppeteer": "^22.10.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/morgan": "^1.9.10",
+    "@types/node": "^25.1.0",
+    "@types/uuid": "^10.0.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

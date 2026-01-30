@@ -1,14 +1,15 @@
 /**
  * Express application setup
  */
-import express from 'express';
+
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 import { requestLogger } from './middleware/requestLogger.js';
 import downloadRoutes from './routes/download.routes.js';
-import logger from './utils/logger.js';
+import jobsRoutes from './routes/jobs.routes.js';
 
 const app = express();
 
@@ -24,7 +25,7 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -48,18 +49,30 @@ app.use(requestLogger);
 
 // Routes
 app.use('/api', downloadRoutes);
+app.use('/api/jobs', jobsRoutes);
 
 // Root endpoint
-app.get('/', (req, res) => {
+app.get('/', (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Fanfic Downloader Backend Server',
     version: '1.0.0',
     endpoints: {
-      health: 'GET /api/health',
-      singleChapter: 'POST /api/download/single-chapter',
-      multiChapter: 'POST /api/download/multi-chapter',
-      series: 'POST /api/download/series'
+      // Synchronous (blocking) - returns file directly
+      sync: {
+        singleChapter: 'POST /api/download/single-chapter',
+        multiChapter: 'POST /api/download/multi-chapter',
+        series: 'POST /api/download/series'
+      },
+      // Async (non-blocking) - returns job ID, poll for status
+      async: {
+        createJob: 'POST /api/jobs',
+        getJobStatus: 'GET /api/jobs/:id',
+        getJobResult: 'GET /api/jobs/:id/result',
+        cancelJob: 'DELETE /api/jobs/:id',
+        queueStats: 'GET /api/jobs/stats'
+      },
+      health: 'GET /api/health'
     }
   });
 });
