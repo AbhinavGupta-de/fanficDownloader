@@ -13,6 +13,8 @@
     "test": "tsx test/run-tests.ts",
     "test:all": "tsx test/run-tests.ts --all",
     "test:direct": "tsx test/run-tests.ts --direct",
+    "test:parallel": "tsx test/test-parallel.ts",
+    "test:ao3": "tsx test/test-ao3.ts",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -32,6 +34,7 @@
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
+    "posthog-node": "^5.24.7",
     "puppeteer": "^22.10.0",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",

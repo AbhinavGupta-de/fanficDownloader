@@ -1,11 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { fetchStory } from '../api/appwriteFunctions';
+
+type SupportedSite = 'ao3' | 'ffn' | null;
 
 const Download: React.FC = () => {
 	const [type, setType] = useState('single');
 	const [url, setUrl] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [downloadType, setDownloadType] = useState('pdf');
+	const [currentSite, setCurrentSite] = useState<SupportedSite>(null);
+
+	// Detect site on mount
+	useEffect(() => {
+		chrome.tabs.query(
+			{ active: true, currentWindow: true },
+			(tabs: chrome.tabs.Tab[]) => {
+				const tabUrl = tabs[0]?.url;
+				if (tabUrl) {
+					setUrl(tabUrl);
+					if (tabUrl.includes('archiveofourown.org')) {
+						setCurrentSite('ao3');
+					} else if (tabUrl.includes('fanfiction.net')) {
+						setCurrentSite('ffn');
+					} else {
+						setCurrentSite(null);
+					}
+				}
+			}
+		);
+	}, []);
+
+	// Reset type if series is selected on FFN
+	useEffect(() => {
+		if (currentSite === 'ffn' && type === 'series') {
+			setType('single');
+		}
+	}, [currentSite, type]);
 
 	const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		setType(e.target.value);
@@ -16,27 +46,29 @@ const Download: React.FC = () => {
 	};
 
 	const handleDownload = async () => {
-		chrome.tabs.query(
-			{ active: true, currentWindow: true },
-			(tabs: chrome.tabs.Tab[]) => {
-				if (tabs[0].url && tabs[0].url.includes('archiveofourown.org')) {
-					setUrl(tabs[0].url);
-				} else {
-					alert('Please navigate to a valid archiveofourown.org page.');
-					return;
-				}
-			}
-		);
+		if (!url || !currentSite) {
+			alert('Please navigate to a supported fanfiction site (AO3 or FFN).');
+			return;
+		}
 
-		if (url && url.includes('archiveofourown.org')) {
-			setLoading(true);
-			try {
-				await fetchStory(type, url, downloadType);
-			} finally {
-				setLoading(false);
-			}
+		setLoading(true);
+		try {
+			await fetchStory(type, url, downloadType);
+		} finally {
+			setLoading(false);
 		}
 	};
+
+	// Show unsupported message if not on a supported site
+	if (currentSite === null && url) {
+		return (
+			<div className="flex p-5 flex-col gap-2">
+				<div className="text-center text-sm text-gray-400">
+					Please navigate to AO3 or FFN to download stories.
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<div className="flex p-5 flex-col gap-2">
@@ -50,15 +82,20 @@ const Download: React.FC = () => {
 						<select
 							className="p-2 bg-secondary rounded-md font-medium text-lg"
 							onChange={handleTypeChange}
+							value={type}
 						>
 							<option value="single">Single Chapter</option>
 							<option value="multi">Full Story</option>
-							<option value="series">Whole Series</option>
+							{/* Only show series option for AO3 */}
+							{currentSite === 'ao3' && (
+								<option value="series">Whole Series</option>
+							)}
 						</select>
 
 						<select
 							className="p-2 bg-secondary rounded-md font-medium text-lg"
 							onChange={handleDownloadType}
+							value={downloadType}
 						>
 							<option value="pdf">PDF</option>
 							<option value="epub">EPUB</option>

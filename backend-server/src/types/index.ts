@@ -13,6 +13,11 @@ export type SupportedSite = 'ao3' | 'ffn';
 export interface DownloadResult {
   buffer: Buffer;
   contentType: string;
+  metadata?: StoryMetadata & {
+    storyId?: string;
+    chapters?: number;
+    url?: string;
+  };
 }
 
 // Story metadata

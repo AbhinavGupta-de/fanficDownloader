@@ -9,14 +9,32 @@ import { promisify } from 'util';
 import logger from '../utils/logger.js';
 import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import { getScraper, detectSite } from '../scrapers/index.js';
-import type { DownloadFormat, DownloadResult } from '../types/index.js';
+import type { DownloadFormat, DownloadResult, StoryMetadata } from '../types/index.js';
 
 const readFile = promisify(fs.readFile);
 
 /**
+ * Extract story ID from URL
+ */
+function extractStoryId(url: string): string | undefined {
+  // AO3: /works/12345
+  const ao3Match = url.match(/\/works\/(\d+)/);
+  if (ao3Match) return ao3Match[1];
+  // FFN: /s/12345/
+  const ffnMatch = url.match(/\/s\/(\d+)/);
+  if (ffnMatch) return ffnMatch[1];
+  return undefined;
+}
+
+interface ChapterContentResult {
+  content: string;
+  metadata: StoryMetadata;
+}
+
+/**
  * Fetches chapter content from AO3 or FFN
  */
-async function getChapterContent(url: string): Promise<string> {
+async function getChapterContent(url: string): Promise<ChapterContentResult> {
   const browser = await puppeteer.launch(getBrowserConfig());
   const page = await browser.newPage();
   const site = detectSite(url);
@@ -27,13 +45,17 @@ async function getChapterContent(url: string): Promise<string> {
     await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
     await page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
 
+    // Get metadata
+    const metadata = await scraper.getMetadata(page);
+
     const chapterContent = await scraper.getSingleChapterContent(page);
     logger.info('Chapter content fetched successfully', {
       site,
-      contentLength: chapterContent.length
+      contentLength: chapterContent.length,
+      title: metadata.title
     });
 
-    return chapterContent;
+    return { content: chapterContent, metadata };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Failed to fetch chapter content', { error: message, url, site });
@@ -71,11 +93,11 @@ async function generatePdf(content: string): Promise<Buffer> {
 /**
  * Generates EPUB from HTML content
  */
-async function generateEpub(content: string): Promise<Buffer> {
+async function generateEpub(content: string, metadata: StoryMetadata): Promise<Buffer> {
   try {
     const epubOptions = {
-      title: 'Fanfic Story',
-      author: 'Unknown',
+      title: metadata.title,
+      author: metadata.author,
       content: [
         {
           title: 'Story',
@@ -115,19 +137,28 @@ export async function downloadSingleChapter(url: string, type: DownloadFormat): 
     throw new Error('Type must be either "pdf" or "epub"');
   }
 
-  const chapterContent = await getChapterContent(url);
+  const { content, metadata } = await getChapterContent(url);
 
   let buffer: Buffer;
   let contentType: string;
 
   if (type === 'pdf') {
-    buffer = await generatePdf(chapterContent);
+    buffer = await generatePdf(content);
     contentType = 'application/pdf';
   } else {
-    buffer = await generateEpub(chapterContent);
+    buffer = await generateEpub(content, metadata);
     contentType = 'application/epub+zip';
   }
 
   logger.info('Single chapter download completed successfully');
-  return { buffer, contentType };
+  return {
+    buffer,
+    contentType,
+    metadata: {
+      ...metadata,
+      storyId: extractStoryId(url),
+      chapters: 1,
+      url
+    }
+  };
 }
