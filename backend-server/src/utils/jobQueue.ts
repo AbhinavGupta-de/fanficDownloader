@@ -1,24 +1,65 @@
 /**
- * Simple in-memory job queue with concurrency control
- * No database required - jobs are lost on server restart
- *
- * For production with persistence, replace with Bull + Redis
+ * Job queue with file-based storage (not RAM)
+ * Results are stored on disk in /tmp and deleted after download
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import fs from 'fs';
+import path from 'path';
 import logger from './logger.js';
-import type { Job, JobInfo, JobData, DownloadResult, QueueStats, DownloadType } from '../types/index.js';
+import type { Job, JobInfo, JobData, DownloadResult, QueueStats, DownloadType, JobFileResult } from '../types/index.js';
 import { JobStatus } from '../types/index.js';
 
 // Configuration
 const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '3');
-const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS || String(10 * 60 * 1000)); // 10 minutes
-const JOB_RETENTION_MS = parseInt(process.env.JOB_RETENTION_MS || String(30 * 60 * 1000)); // 30 minutes
+const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS || String(45 * 60 * 1000)); // 45 minutes
+const JOB_RETENTION_MS = parseInt(process.env.JOB_RETENTION_MS || String(60 * 60 * 1000)); // 60 minutes
 
-// In-memory storage
+// Directory for temporary job files
+const JOB_FILES_DIR = '/tmp/fanfic-downloads';
+
+// Ensure job files directory exists
+if (!fs.existsSync(JOB_FILES_DIR)) {
+  fs.mkdirSync(JOB_FILES_DIR, { recursive: true });
+}
+
+// In-memory storage (only metadata, not file contents)
 const jobs = new Map<string, Job>();
 const pendingQueue: string[] = [];
 let activeJobs = 0;
+
+/**
+ * Save result buffer to disk and return file info
+ */
+function saveResultToDisk(jobId: string, result: DownloadResult): JobFileResult {
+  const extension = result.contentType === 'application/pdf' ? 'pdf' : 'epub';
+  const fileName = `${jobId}.${extension}`;
+  const filePath = path.join(JOB_FILES_DIR, fileName);
+
+  fs.writeFileSync(filePath, result.buffer);
+
+  logger.info('Saved job result to disk', { jobId, filePath, size: result.buffer.length });
+
+  return {
+    filePath,
+    contentType: result.contentType,
+    fileSize: result.buffer.length
+  };
+}
+
+/**
+ * Delete result file from disk
+ */
+function deleteResultFile(filePath: string): void {
+  try {
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      logger.info('Deleted job result file', { filePath });
+    }
+  } catch (error) {
+    logger.error('Failed to delete job result file', { filePath, error });
+  }
+}
 
 /**
  * Create a new job
@@ -50,7 +91,7 @@ export function createJob(type: DownloadType, data: JobData): string {
 }
 
 /**
- * Get job status (without the result buffer)
+ * Get job status
  */
 export function getJob(jobId: string): JobInfo | null {
   const job = jobs.get(jobId);
@@ -64,9 +105,9 @@ export function getJob(jobId: string): JobInfo | null {
 }
 
 /**
- * Get job result (the actual file buffer)
+ * Get job result file info (not the actual file)
  */
-export function getJobResult(jobId: string): DownloadResult | null {
+export function getJobResult(jobId: string): JobFileResult | null {
   const job = jobs.get(jobId);
   if (!job || job.status !== JobStatus.COMPLETED) return null;
   return job.result;
@@ -86,7 +127,6 @@ export function updateJobProgress(jobId: string, progress: number): void {
  * Process the next job in queue
  */
 async function processNextJob(): Promise<void> {
-  // Check if we can process more jobs
   if (activeJobs >= MAX_CONCURRENT_JOBS || pendingQueue.length === 0) {
     return;
   }
@@ -97,7 +137,6 @@ async function processNextJob(): Promise<void> {
   const job = jobs.get(jobId);
 
   if (!job || job.status !== JobStatus.PENDING) {
-    // Job was cancelled or doesn't exist, try next
     processNextJob();
     return;
   }
@@ -109,19 +148,16 @@ async function processNextJob(): Promise<void> {
   logger.info('Job started', { jobId, activeJobs, pendingCount: pendingQueue.length });
 
   try {
-    // Import services dynamically to avoid circular deps
     const { downloadSingleChapter } = await import('../services/singleChapter.service.js');
     const { downloadMultiChapter } = await import('../services/multiChapter.service.js');
     const { downloadSeries } = await import('../services/series.service.js');
 
     const { url, type: format } = job.data;
 
-    // Set timeout for the job
     const timeoutPromise = new Promise<never>((_, reject) => {
       setTimeout(() => reject(new Error('Job timed out')), JOB_TIMEOUT_MS);
     });
 
-    // Execute based on job type
     let downloadPromise: Promise<DownloadResult>;
     switch (job.type) {
       case 'single-chapter':
@@ -139,15 +175,18 @@ async function processNextJob(): Promise<void> {
 
     const result = await Promise.race([downloadPromise, timeoutPromise]);
 
+    // Save to disk instead of keeping in RAM
+    const fileResult = saveResultToDisk(jobId, result);
+
     job.status = JobStatus.COMPLETED;
     job.completedAt = Date.now();
-    job.result = result;
+    job.result = fileResult;
     job.progress = 100;
 
     logger.info('Job completed', {
       jobId,
       duration: job.completedAt - (job.startedAt || job.createdAt),
-      resultSize: result.buffer?.length
+      fileSize: fileResult.fileSize
     });
 
   } catch (error) {
@@ -158,7 +197,6 @@ async function processNextJob(): Promise<void> {
     logger.error('Job failed', { jobId, error: job.error });
   } finally {
     activeJobs--;
-    // Process next job in queue
     processNextJob();
   }
 }
@@ -188,7 +226,6 @@ export function cancelJob(jobId: string): boolean {
   job.error = 'Cancelled by user';
   job.completedAt = Date.now();
 
-  // Remove from pending queue
   const index = pendingQueue.indexOf(jobId);
   if (index > -1) {
     pendingQueue.splice(index, 1);
@@ -198,18 +235,38 @@ export function cancelJob(jobId: string): boolean {
 }
 
 /**
- * Cleanup old jobs periodically
+ * Delete a job and its file
+ */
+export function deleteJob(jobId: string): boolean {
+  const job = jobs.get(jobId);
+  if (!job) return false;
+
+  // Delete the file if it exists
+  if (job.result?.filePath) {
+    deleteResultFile(job.result.filePath);
+  }
+
+  jobs.delete(jobId);
+  logger.info('Job deleted', { jobId });
+  return true;
+}
+
+/**
+ * Cleanup old jobs and their files
  */
 function cleanupOldJobs(): void {
   const now = Date.now();
   let cleaned = 0;
 
   for (const [jobId, job] of jobs) {
-    // Remove completed/failed jobs older than retention period
     if (
       (job.status === JobStatus.COMPLETED || job.status === JobStatus.FAILED) &&
       job.completedAt && (now - job.completedAt > JOB_RETENTION_MS)
     ) {
+      // Delete file before removing job
+      if (job.result?.filePath) {
+        deleteResultFile(job.result.filePath);
+      }
       jobs.delete(jobId);
       cleaned++;
     }
@@ -219,6 +276,34 @@ function cleanupOldJobs(): void {
     logger.info('Cleaned up old jobs', { cleaned, remaining: jobs.size });
   }
 }
+
+/**
+ * Cleanup orphaned files on startup
+ */
+function cleanupOrphanedFiles(): void {
+  try {
+    const files = fs.readdirSync(JOB_FILES_DIR);
+    let cleaned = 0;
+
+    for (const file of files) {
+      const jobId = path.basename(file, path.extname(file));
+      if (!jobs.has(jobId)) {
+        const filePath = path.join(JOB_FILES_DIR, file);
+        fs.unlinkSync(filePath);
+        cleaned++;
+      }
+    }
+
+    if (cleaned > 0) {
+      logger.info('Cleaned up orphaned files on startup', { cleaned });
+    }
+  } catch (error) {
+    logger.error('Failed to cleanup orphaned files', { error });
+  }
+}
+
+// Cleanup on startup
+cleanupOrphanedFiles();
 
 // Run cleanup every 5 minutes
 setInterval(cleanupOldJobs, 5 * 60 * 1000);
@@ -232,5 +317,6 @@ export default {
   updateJobProgress,
   getQueueStats,
   cancelJob,
+  deleteJob,
   JobStatus
 };

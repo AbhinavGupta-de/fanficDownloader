@@ -2,10 +2,11 @@
  * Async Job Routes
  *
  * These endpoints use a queue system for handling downloads asynchronously.
- * Better for handling multiple concurrent requests without blocking.
+ * Files are stored on disk (not RAM) and deleted after download.
  */
 
 import { Router, Request, Response } from 'express';
+import fs from 'fs';
 import jobQueue, { JobStatus } from '../utils/jobQueue.js';
 import { isSupportedSite } from '../scrapers/index.js';
 import logger from '../utils/logger.js';
@@ -94,7 +95,7 @@ router.get('/:id', (req: Request<JobParams>, res: Response) => {
 
 /**
  * GET /api/jobs/:id/result
- * Get job result (download the file)
+ * Stream file from disk and delete after sending
  */
 router.get('/:id/result', (req: Request<JobParams>, res: Response) => {
   const { id } = req.params;
@@ -115,19 +116,42 @@ router.get('/:id/result', (req: Request<JobParams>, res: Response) => {
   }
 
   const result = jobQueue.getJobResult(id);
-  if (!result) {
+  if (!result || !result.filePath) {
     res.status(404).json({ error: 'Result not found or expired' });
+    return;
+  }
+
+  // Check if file exists
+  if (!fs.existsSync(result.filePath)) {
+    res.status(404).json({ error: 'File not found on disk' });
+    jobQueue.deleteJob(id); // Clean up the job entry
     return;
   }
 
   // Set headers for file download
   res.setHeader('Content-Type', result.contentType);
-  res.setHeader('Content-Length', result.buffer.length);
+  res.setHeader('Content-Length', result.fileSize);
 
   const extension = result.contentType === 'application/pdf' ? 'pdf' : 'epub';
   res.setHeader('Content-Disposition', `attachment; filename="download.${extension}"`);
 
-  res.send(result.buffer);
+  // Stream file from disk
+  const fileStream = fs.createReadStream(result.filePath);
+
+  fileStream.on('error', (err) => {
+    logger.error('Error streaming file', { jobId: id, error: err.message });
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Error reading file' });
+    }
+  });
+
+  fileStream.on('end', () => {
+    // Delete job and file after successful download
+    jobQueue.deleteJob(id);
+    logger.info('File streamed and deleted', { jobId: id });
+  });
+
+  fileStream.pipe(res);
 });
 
 /**

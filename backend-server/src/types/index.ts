@@ -61,6 +61,13 @@ export interface JobData {
   type: DownloadFormat;
 }
 
+// File-based result (stored on disk, not RAM)
+export interface JobFileResult {
+  filePath: string;
+  contentType: string;
+  fileSize: number;
+}
+
 export interface Job {
   id: string;
   type: DownloadType;
@@ -69,7 +76,7 @@ export interface Job {
   createdAt: number;
   startedAt: number | null;
   completedAt: number | null;
-  result: DownloadResult | null;
+  result: JobFileResult | null;  // Now stores file path, not buffer
   error: string | null;
   progress: number;
 }
