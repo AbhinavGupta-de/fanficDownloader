@@ -1,0 +1,5 @@
+# Test output files
+test-output/
+*.pdf
+*.epub
+*_preview.txt

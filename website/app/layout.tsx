@@ -3,6 +3,8 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import CookieConsent from '@/components/CookieConsent';
+import { PostHogProvider } from './providers';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
@@ -22,13 +24,17 @@ export default function RootLayout({
 				style={{
 					backgroundColor: '#20231F',
 					color: 'white',
-					fontSize: '20px',
+					fontSize: '18px',
 					fontFamily: 'Kelly Slab',
 				}}
+				data-testid="root-layout"
 			>
-				<Header />
-				<main className="flex">{children}</main>
-				<Footer />
+				<PostHogProvider>
+					<Header />
+					<main className="flex justify-center min-h-screen" data-testid="main-content">{children}</main>
+					<Footer />
+					<CookieConsent />
+				</PostHogProvider>
 			</body>
 		</html>
 	);
