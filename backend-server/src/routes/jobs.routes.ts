@@ -2,7 +2,7 @@
  * Async Job Routes
  *
  * These endpoints use a queue system for handling downloads asynchronously.
- * Files are stored on disk (not RAM) and deleted after download.
+ * Files are stored on disk (not RAM) and auto-deleted after 10 minutes.
  */
 
 import { Router, Request, Response } from 'express';
@@ -146,9 +146,8 @@ router.get('/:id/result', (req: Request<JobParams>, res: Response) => {
   });
 
   fileStream.on('end', () => {
-    // Delete job and file after successful download
-    jobQueue.deleteJob(id);
-    logger.info('File streamed and deleted', { jobId: id });
+    // Job and file will be auto-deleted after 10 minutes by cleanup process
+    logger.info('File streamed successfully', { jobId: id });
   });
 
   fileStream.pipe(res);

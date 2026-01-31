@@ -1,5 +1,5 @@
 // Backend API configuration
-export const API_BASE_URL = 'https://chrome-plus-web.emergent.host';
+export const API_BASE_URL = 'https://ext-dashboard.emergent.host';
 
 // Sync endpoints (direct download - may timeout for large files)
 export const API_ENDPOINTS = {
@@ -19,7 +19,7 @@ export const JOB_ENDPOINTS = {
 };
 
 // Polling interval for job status (in milliseconds)
-export const JOB_POLL_INTERVAL = 2000; // 2 seconds
+export const JOB_POLL_INTERVAL = 5000; // 5 seconds
 
 // Timeouts for sync endpoints (used as fallback for small downloads)
 export const API_TIMEOUTS = {

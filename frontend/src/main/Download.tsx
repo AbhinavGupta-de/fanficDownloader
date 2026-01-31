@@ -68,6 +68,8 @@ const Download: React.FC = () => {
 		try {
 			await fetchStory(type, url, downloadType, handleProgress);
 			setProgressMessage('Download complete!');
+			// Clear success message after 3 seconds
+			setTimeout(() => setProgressMessage(''), 3000);
 		} catch (err) {
 			const errorMsg = err instanceof Error ? err.message : 'Download failed';
 			setError(errorMsg);
@@ -77,15 +79,9 @@ const Download: React.FC = () => {
 		}
 	};
 
-	// Show unsupported message if not on a supported site
-	if (currentSite === null && url) {
-		return (
-			<div className="flex p-5 flex-col gap-2">
-				<div className="text-center text-sm text-gray-400">
-					Please navigate to AO3 or FFN to download stories.
-				</div>
-			</div>
-		);
+	// Don't render anything if not on a supported site
+	if (currentSite === null) {
+		return null;
 	}
 
 	const estimatedTime = currentSite
@@ -93,29 +89,34 @@ const Download: React.FC = () => {
 		: null;
 
 	return (
-		<div className="flex p-5 flex-col gap-2">
+		<div className="flex flex-col gap-3 mt-2">
+			{/* Error display */}
+			{error && (
+				<div className="bg-red-500/20 border border-red-500/50 text-red-200 text-xs p-2 rounded-md text-center">
+					<span className="font-medium">Error:</span> {error}
+					<button
+						onClick={() => setError(null)}
+						className="ml-2 text-red-300 hover:text-white"
+					>
+						✕
+					</button>
+				</div>
+			)}
+
 			{loading ? (
-				<div className="flex flex-col justify-center items-center gap-2">
-					<div className="max-w-[120px]">
-						<img src="/icons/runningBunny.gif" alt="Bunny running" />
+				<div className="flex flex-col justify-center items-center gap-2 py-2">
+					<div className="max-w-[80px]">
+						<img src="/icons/runningBunny.gif" alt="Downloading..." />
 					</div>
-					<p className="text-xs text-gray-300 text-center font-medium">
+					<p className="text-sm text-white text-center font-medium">
 						{progressMessage}
 					</p>
-					<p className="text-xs text-gray-500 text-center">
+					<p className="text-xs text-white/50 text-center">
 						Large stories may take several minutes.
-						<br />
-						Please keep this popup open.
 					</p>
 				</div>
 			) : (
 				<>
-					{error && (
-						<div className="bg-red-900/50 text-red-300 text-xs p-2 rounded-md text-center mb-2">
-							{error}
-						</div>
-					)}
-
 					<div className="flex justify-center items-center gap-2">
 						<select
 							className="p-2 bg-secondary rounded-md font-medium text-lg"
@@ -124,7 +125,6 @@ const Download: React.FC = () => {
 						>
 							<option value="single">Single Chapter</option>
 							<option value="multi">Full Story</option>
-							{/* Only show series option for AO3 */}
 							{currentSite === 'ao3' && (
 								<option value="series">Whole Series</option>
 							)}
@@ -142,14 +142,14 @@ const Download: React.FC = () => {
 
 					{/* Estimated time display */}
 					{estimatedTime && (
-						<p className="text-xs text-gray-400 text-center">
+						<p className="text-sm text-white/80 text-center">
 							⏱️ Estimated: {estimatedTime}
 						</p>
 					)}
 
 					<div className="flex justify-center items-center">
 						<button
-							className="p-2 bg-backgroundSecondary rounded-xl font-thin text-lg"
+							className="p-2 px-6 bg-backgroundSecondary rounded-xl font-medium text-lg hover:opacity-90 transition-opacity"
 							onClick={handleDownload}
 							disabled={loading}
 						>

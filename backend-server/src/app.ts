@@ -16,24 +16,8 @@ const app = express();
 // Security middleware
 app.use(helmet());
 
-// CORS configuration
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : ['http://localhost:3000'];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+// CORS - allow all origins
+app.use(cors());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));

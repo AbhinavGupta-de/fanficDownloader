@@ -1,6 +1,6 @@
 /**
  * Job queue with file-based storage (not RAM)
- * Results are stored on disk in /tmp and deleted after download
+ * Results are stored on disk in /tmp and auto-deleted after 10 minutes
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -13,7 +13,7 @@ import { JobStatus } from '../types/index.js';
 // Configuration
 const MAX_CONCURRENT_JOBS = parseInt(process.env.MAX_CONCURRENT_JOBS || '3');
 const JOB_TIMEOUT_MS = parseInt(process.env.JOB_TIMEOUT_MS || String(45 * 60 * 1000)); // 45 minutes
-const JOB_RETENTION_MS = parseInt(process.env.JOB_RETENTION_MS || String(60 * 60 * 1000)); // 60 minutes
+const JOB_RETENTION_MS = parseInt(process.env.JOB_RETENTION_MS || String(10 * 60 * 1000)); // 10 minutes after completion
 
 // Directory for temporary job files
 const JOB_FILES_DIR = '/tmp/fanfic-downloads';
