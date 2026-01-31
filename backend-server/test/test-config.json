@@ -1,0 +1,38 @@
+{
+  "stories": [
+    {
+      "name": "AO3 Single Chapter Test",
+      "url": "https://archiveofourown.org/works/25830817",
+      "type": "pdf",
+      "mode": "single",
+      "enabled": true
+    },
+    {
+      "name": "AO3 Multi Chapter Test",
+      "url": "https://archiveofourown.org/works/25830817",
+      "type": "epub",
+      "mode": "multi",
+      "enabled": false
+    },
+    {
+      "name": "FFN Single Chapter Test",
+      "url": "https://www.fanfiction.net/s/14523797/1/The-Dark-Lord-Harry-Potter",
+      "type": "pdf",
+      "mode": "single",
+      "enabled": true
+    },
+    {
+      "name": "FFN Multi Chapter Test (from ch3)",
+      "url": "https://www.fanfiction.net/s/14523797/3/The-Dark-Lord-Harry-Potter",
+      "type": "pdf",
+      "mode": "multi",
+      "enabled": true
+    }
+  ],
+  "settings": {
+    "outputDir": "./test-output",
+    "apiUrl": "http://localhost:8002",
+    "runAllEnabled": true,
+    "stopOnFirstError": false
+  }
+}

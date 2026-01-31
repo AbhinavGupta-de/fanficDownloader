@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  backend-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fanfic-backend-server
+    ports:
+      - "8002:8002"
+    environment:
+      - NODE_ENV=production
+      - PORT=8002
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8002/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    volumes:
+      - /tmp:/tmp
+    mem_limit: 2g
+    cpus: 1.0
