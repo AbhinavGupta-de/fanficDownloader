@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { JOB_ENDPOINTS, JOB_POLL_INTERVAL } from './config';
+import { saveJob, getStoredJob, clearStoredJob } from './jobStorage';
 
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -66,11 +67,12 @@ export async function cancelJob(jobId: string): Promise<void> {
 
 /**
  * Poll job until completion and download result
+ * Returns { result, jobNotFound } - jobNotFound=true means we got 404
  */
 export async function pollAndDownload(
   jobId: string,
   onProgress?: ProgressCallback
-): Promise<ArrayBuffer> {
+): Promise<{ result: ArrayBuffer; jobNotFound: false } | { result: null; jobNotFound: true }> {
   return new Promise((resolve, reject) => {
     const poll = async () => {
       try {
@@ -85,7 +87,7 @@ export async function pollAndDownload(
         if (job.status === 'completed') {
           // Download the result
           const result = await downloadJobResult(jobId);
-          resolve(result);
+          resolve({ result, jobNotFound: false });
         } else if (job.status === 'failed') {
           reject(new Error(job.error || 'Download failed'));
         } else {
@@ -93,7 +95,12 @@ export async function pollAndDownload(
           setTimeout(poll, JOB_POLL_INTERVAL);
         }
       } catch (error) {
-        reject(error);
+        // Check if it's a 404 (job not found)
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          resolve({ result: null, jobNotFound: true });
+        } else {
+          reject(error);
+        }
       }
     };
 
@@ -124,7 +131,7 @@ function getProgressMessage(job: JobInfo): string {
 }
 
 /**
- * Full download flow: create job → poll → download
+ * Full download flow: check existing job → create if needed → poll → download
  */
 export async function downloadWithJobQueue(
   url: string,
@@ -132,7 +139,30 @@ export async function downloadWithJobQueue(
   format: 'pdf' | 'epub',
   onProgress?: ProgressCallback
 ): Promise<ArrayBuffer> {
-  // Create the job
+  // Check for existing job in localStorage
+  const existingJob = getStoredJob(url, type, format);
+
+  if (existingJob) {
+    console.log('Found existing job:', existingJob.jobId);
+    if (onProgress) {
+      onProgress('pending', 0, 'Resuming previous download...');
+    }
+
+    // Try to poll the existing job
+    const pollResult = await pollAndDownload(existingJob.jobId, onProgress);
+
+    if (pollResult.jobNotFound) {
+      // Job was deleted on server (404), clear storage and create new
+      console.log('Existing job not found on server, creating new one...');
+      clearStoredJob(url, type, format);
+    } else {
+      // Success - clear storage and return result
+      clearStoredJob(url, type, format);
+      return pollResult.result;
+    }
+  }
+
+  // Create new job
   if (onProgress) {
     onProgress('pending', 0, 'Creating download job...');
   }
@@ -140,7 +170,18 @@ export async function downloadWithJobQueue(
   const jobId = await createJob(url, type, format);
   console.log('Job created:', jobId);
 
+  // Save to localStorage for resume capability
+  saveJob(url, jobId, type, format);
+
   // Poll until complete and get result
-  const result = await pollAndDownload(jobId, onProgress);
-  return result;
+  const pollResult = await pollAndDownload(jobId, onProgress);
+
+  // Clear storage after completion
+  clearStoredJob(url, type, format);
+
+  if (pollResult.jobNotFound) {
+    throw new Error('Job was deleted unexpectedly. Please try again.');
+  }
+
+  return pollResult.result;
 }

@@ -1,9 +1,9 @@
 {
 	"manifest_version": 3,
 	"name": "Fanfiction Downloader",
-	"description": "Download fanfiction from Fanfiction.net and Archiveofourown.org",
+	"description": "Download fanfiction from FanFiction.Net and Archive of Our Own (AO3) as EPUB or PDF",
 	"author": "Abhinav Gupta",
-	"version": "2.0.0",
+	"version": "3.0.0",
 	"icons": {
 		"16": "image.png",
 		"48": "image.png",
@@ -20,15 +20,12 @@
 	"background": {
 		"service_worker": "background.js"
 	},
-	"permissions": ["activeTab", "downloads", "tabs", "scripting"],
+	"permissions": ["activeTab", "downloads", "tabs", "scripting", "storage"],
 	"content_scripts": [
 		{
 			"matches": [
 				"https://www.fanfiction.net/*",
-				"https://archiveofourown.org/*",
-				"https://66614fabac01bd29afbd.appwrite.global/",
-				"https://6671437b55829c7796ce.appwrite.global/",
-				"https://6661df0a82b533cdfb2e.appwrite.global/"
+				"https://archiveofourown.org/*"
 			],
 			"js": ["content.js"]
 		}

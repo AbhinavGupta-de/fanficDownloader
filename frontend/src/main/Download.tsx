@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchStory } from '../api/appwriteFunctions';
 import { getEstimatedTime } from '../api/config';
 import type { JobStatus } from '../api/jobQueue';
+import { getStoredJob } from '../api/jobStorage';
 
 type SupportedSite = 'ao3' | 'ffn' | null;
 
@@ -13,6 +14,7 @@ const Download: React.FC = () => {
 	const [currentSite, setCurrentSite] = useState<SupportedSite>(null);
 	const [progressMessage, setProgressMessage] = useState<string>('');
 	const [error, setError] = useState<string | null>(null);
+	const hasCheckedExisting = useRef(false);
 
 	// Detect site on mount
 	useEffect(() => {
@@ -33,6 +35,49 @@ const Download: React.FC = () => {
 			}
 		);
 	}, []);
+
+	// Check for existing job and auto-resume on mount
+	useEffect(() => {
+		if (!url || !currentSite || hasCheckedExisting.current) return;
+		hasCheckedExisting.current = true;
+
+		// Check all combinations of type and format for existing jobs
+		const types: Array<'single-chapter' | 'multi-chapter' | 'series'> = ['single-chapter', 'multi-chapter', 'series'];
+		const formats: Array<'pdf' | 'epub'> = ['epub', 'pdf'];
+
+		for (const apiType of types) {
+			for (const format of formats) {
+				const existingJob = getStoredJob(url, apiType, format);
+				if (existingJob) {
+					// Found an existing job - set the UI state and auto-resume
+					const uiType = apiType === 'single-chapter' ? 'single' : apiType === 'multi-chapter' ? 'multi' : 'series';
+					setType(uiType);
+					setDownloadType(format);
+
+					// Auto-start the download (which will resume the existing job)
+					console.log('Found existing job, auto-resuming:', existingJob.jobId);
+					setLoading(true);
+					setProgressMessage('Resuming previous download...');
+
+					fetchStory(uiType, url, format, handleProgress)
+						.then(() => {
+							setProgressMessage('Download complete!');
+							setTimeout(() => setProgressMessage(''), 3000);
+						})
+						.catch((err) => {
+							const errorMsg = err instanceof Error ? err.message : 'Download failed';
+							setError(errorMsg);
+							setProgressMessage('');
+						})
+						.finally(() => {
+							setLoading(false);
+						});
+
+					return; // Stop after finding first existing job
+				}
+			}
+		}
+	}, [url, currentSite]);
 
 	// Reset type if series is selected on FFN
 	useEffect(() => {
@@ -104,7 +149,7 @@ const Download: React.FC = () => {
 			)}
 
 			{loading ? (
-				<div className="flex flex-col justify-center items-center gap-2 py-2">
+				<div className="flex flex-col justify-center items-center gap-2 py-2 mb-4">
 					<div className="max-w-[80px]">
 						<img src="/icons/runningBunny.gif" alt="Downloading..." />
 					</div>

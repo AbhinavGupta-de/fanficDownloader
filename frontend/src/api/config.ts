@@ -1,5 +1,5 @@
 // Backend API configuration
-export const API_BASE_URL = 'https://ext-dashboard.emergent.host';
+export const API_BASE_URL = 'https://web-ext-backend.emergent.host';
 
 // Sync endpoints (direct download - may timeout for large files)
 export const API_ENDPOINTS = {
