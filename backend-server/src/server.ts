@@ -3,14 +3,21 @@
  */
 
 import 'dotenv/config';
+import { setupExpressErrorHandler } from 'posthog-node';
 import app from './app.js';
 import logger from './utils/logger.js';
-import { initAnalytics, shutdownAnalytics } from './utils/analytics.js';
+import { initAnalytics, shutdownAnalytics, getPostHogClient } from './utils/analytics.js';
 
 const PORT = parseInt(process.env.PORT || '8002');
 
 // Initialize analytics
 initAnalytics();
+
+// Setup PostHog Express error handler (must be after initAnalytics so client exists)
+const posthogClient = getPostHogClient();
+if (posthogClient) {
+  setupExpressErrorHandler(posthogClient, app);
+}
 
 const server = app.listen(PORT, () => {
   logger.info(`Server started on port ${PORT}`, {

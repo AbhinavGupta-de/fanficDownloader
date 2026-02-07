@@ -4,6 +4,7 @@
 
 import type { Request, Response, NextFunction, ErrorRequestHandler } from 'express';
 import logger from '../utils/logger.js';
+import { trackError, trackException } from '../utils/analytics.js';
 
 interface AppError extends Error {
   status?: number;
@@ -39,6 +40,25 @@ export const errorHandler: ErrorRequestHandler = (
     path: req.path,
     method: req.method
   });
+
+  const reqInfo = {
+    ip: req.ip || undefined,
+    headers: req.headers as Record<string, string | string[] | undefined>
+  };
+
+  // Track error as custom event in PostHog product analytics
+  trackError({
+    error_type: err.constructor?.name || 'UnknownError',
+    error_message: message,
+    error_stack: err.stack,
+    endpoint: req.path,
+    method: req.method,
+  }, reqInfo);
+
+  // Track as exception in PostHog error tracking (separate 100K free tier)
+  if (err instanceof Error) {
+    trackException(err, { endpoint: req.path, method: req.method, status }, reqInfo);
+  }
 
   res.status(status).json({
     success: false,
