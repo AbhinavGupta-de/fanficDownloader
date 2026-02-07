@@ -7,6 +7,15 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 import logger from './logger.js';
+import {
+  trackJobCreated,
+  trackJobStarted,
+  trackJobCompleted,
+  trackJobFailed,
+  trackJobCancelled,
+  trackException,
+} from './analytics.js';
+import { detectSite } from '../scrapers/index.js';
 import type { Job, JobInfo, JobData, DownloadResult, QueueStats, DownloadType, JobFileResult } from '../types/index.js';
 import { JobStatus } from '../types/index.js';
 
@@ -62,6 +71,20 @@ function deleteResultFile(filePath: string): void {
 }
 
 /**
+ * Build common job event props for analytics
+ */
+function getJobEventProps(job: Job) {
+  const site = detectSite(job.data.url);
+  return {
+    job_id: job.id,
+    job_type: job.type as 'single-chapter' | 'multi-chapter' | 'series',
+    format: job.data.type as 'pdf' | 'epub',
+    url: job.data.url,
+    site: (site || 'unknown') as 'ao3' | 'ffn' | 'unknown',
+  };
+}
+
+/**
  * Create a new job
  */
 export function createJob(type: DownloadType, data: JobData): string {
@@ -83,6 +106,7 @@ export function createJob(type: DownloadType, data: JobData): string {
   pendingQueue.push(jobId);
 
   logger.info('Job created', { jobId, type, queuePosition: pendingQueue.length });
+  trackJobCreated({ ...getJobEventProps(job), queue_position: pendingQueue.length });
 
   // Try to process immediately if slots available
   processNextJob();
@@ -146,6 +170,7 @@ async function processNextJob(): Promise<void> {
   job.startedAt = Date.now();
 
   logger.info('Job started', { jobId, activeJobs, pendingCount: pendingQueue.length });
+  trackJobStarted({ ...getJobEventProps(job), active_jobs: activeJobs, pending_count: pendingQueue.length });
 
   try {
     const { downloadSingleChapter } = await import('../services/singleChapter.service.js');
@@ -183,18 +208,21 @@ async function processNextJob(): Promise<void> {
     job.result = fileResult;
     job.progress = 100;
 
-    logger.info('Job completed', {
-      jobId,
-      duration: job.completedAt - (job.startedAt || job.createdAt),
-      fileSize: fileResult.fileSize
-    });
+    const duration = job.completedAt - (job.startedAt || job.createdAt);
+    logger.info('Job completed', { jobId, duration, fileSize: fileResult.fileSize });
+    trackJobCompleted({ ...getJobEventProps(job), duration_ms: duration, file_size_bytes: fileResult.fileSize });
 
   } catch (error) {
     job.status = JobStatus.FAILED;
     job.completedAt = Date.now();
     job.error = error instanceof Error ? error.message : 'Unknown error';
 
+    const duration = job.completedAt - (job.startedAt || job.createdAt);
     logger.error('Job failed', { jobId, error: job.error });
+    trackJobFailed({ ...getJobEventProps(job), duration_ms: duration, error: job.error });
+    if (error instanceof Error) {
+      trackException(error, { job_id: jobId, job_type: job.type });
+    }
   } finally {
     activeJobs--;
     processNextJob();
@@ -230,6 +258,8 @@ export function cancelJob(jobId: string): boolean {
   if (index > -1) {
     pendingQueue.splice(index, 1);
   }
+
+  trackJobCancelled(getJobEventProps(job));
 
   return true;
 }
