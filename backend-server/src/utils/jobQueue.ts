@@ -52,7 +52,8 @@ function saveResultToDisk(jobId: string, result: DownloadResult): JobFileResult 
   return {
     filePath,
     contentType: result.contentType,
-    fileSize: result.buffer.length
+    fileSize: result.buffer.length,
+    metadata: result.metadata
   };
 }
 
@@ -124,7 +125,8 @@ export function getJob(jobId: string): JobInfo | null {
   const { result, ...jobInfo } = job;
   return {
     ...jobInfo,
-    hasResult: result !== null
+    hasResult: result !== null,
+    metadata: result?.metadata
   };
 }
 

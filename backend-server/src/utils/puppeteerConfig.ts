@@ -6,15 +6,15 @@
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import type { PdfOptions } from '../types/index.js';
-import type { PuppeteerLaunchOptions } from 'puppeteer';
+import type { LaunchOptions } from 'puppeteer';
 
 // Add stealth plugin to avoid detection (Cloudflare, etc.)
 puppeteer.use(StealthPlugin());
 
 export { puppeteer };
 
-export const getBrowserConfig = (): PuppeteerLaunchOptions => {
-  const config: PuppeteerLaunchOptions = {
+export const getBrowserConfig = (): LaunchOptions => {
+  const config: LaunchOptions = {
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',

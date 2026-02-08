@@ -3,7 +3,7 @@
 	"name": "Fanfiction Downloader",
 	"description": "Download fanfiction from FanFiction.Net and Archive of Our Own (AO3) as EPUB or PDF",
 	"author": "Abhinav Gupta",
-	"version": "3.0.0",
+	"version": "3.0.2",
 	"icons": {
 		"16": "image.png",
 		"48": "image.png",

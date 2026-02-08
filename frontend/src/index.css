@@ -1,3 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-body: "Kelly Slab", serif;
+  --color-primary: #FF463F;
+  --color-background: #20231F;
+  --color-white: #FFFFFF;
+  --color-secondary: #FF8580;
+  --color-backgroundSecondary: #85EE83;
+}

@@ -1,6 +1,6 @@
 {
   "name": "fanfic-downloader-backend",
-  "version": "1.0.0",
+  "version": "3.0.2",
   "description": "Backend server for Fanfic Downloader Chrome Extension",
   "main": "dist/server.js",
   "type": "module",
@@ -30,12 +30,12 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "epub-gen": "^0.1.0",
+    "epub-gen-memory": "^1.1.2",
     "express": "^4.18.2",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
     "posthog-node": "^5.24.7",
-    "puppeteer": "^22.10.0",
+    "puppeteer": "^24.37.2",
     "puppeteer-extra": "^3.3.6",
     "puppeteer-extra-plugin-stealth": "^2.11.2",
     "uuid": "^13.0.0"
