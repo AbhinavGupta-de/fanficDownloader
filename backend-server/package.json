@@ -1,6 +1,6 @@
 {
   "name": "fanfic-downloader-backend",
-  "version": "1.0.0",
+  "version": "3.0.2",
   "description": "Backend server for Fanfic Downloader Chrome Extension",
   "main": "dist/server.js",
   "type": "module",
