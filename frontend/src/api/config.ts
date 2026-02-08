@@ -1,5 +1,5 @@
 // Backend API configuration
-export const API_BASE_URL = 'http://localhost:8002';
+export const API_BASE_URL = 'https://fanficdownloader.abhinavgpt.com';
 
 // Sync endpoints (direct download - may timeout for large files)
 export const API_ENDPOINTS = {
