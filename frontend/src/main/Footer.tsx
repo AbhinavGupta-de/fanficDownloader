@@ -7,7 +7,7 @@ const Footer = () => {
 
 	const handleWebsiteClick = () => {
 		chrome.tabs.create({
-			url: 'https://fanfic-downloader.vercel.app',
+			url: 'https://fanficdownloader.abhinavgpt.com',
 		});
 	};
 
