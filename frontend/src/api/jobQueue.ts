@@ -4,6 +4,14 @@ import { saveJob, getStoredJob, clearStoredJob } from './jobStorage';
 
 export type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
+export interface StoryMetadata {
+  title: string;
+  author: string;
+  storyId?: string;
+  chapters?: number;
+  url?: string;
+}
+
 export interface JobInfo {
   id: string;
   type: string;
@@ -11,6 +19,7 @@ export interface JobInfo {
   progress: number;
   error?: string;
   hasResult?: boolean;
+  metadata?: StoryMetadata;
   createdAt: number;
   startedAt?: number;
   completedAt?: number;
@@ -69,10 +78,22 @@ export async function cancelJob(jobId: string): Promise<void> {
  * Poll job until completion and download result
  * Returns { result, jobNotFound } - jobNotFound=true means we got 404
  */
+export interface PollResult {
+  result: ArrayBuffer;
+  metadata?: StoryMetadata;
+  jobNotFound: false;
+}
+
+export interface PollNotFound {
+  result: null;
+  metadata?: undefined;
+  jobNotFound: true;
+}
+
 export async function pollAndDownload(
   jobId: string,
   onProgress?: ProgressCallback
-): Promise<{ result: ArrayBuffer; jobNotFound: false } | { result: null; jobNotFound: true }> {
+): Promise<PollResult | PollNotFound> {
   return new Promise((resolve, reject) => {
     const poll = async () => {
       try {
@@ -87,7 +108,7 @@ export async function pollAndDownload(
         if (job.status === 'completed') {
           // Download the result
           const result = await downloadJobResult(jobId);
-          resolve({ result, jobNotFound: false });
+          resolve({ result, metadata: job.metadata, jobNotFound: false });
         } else if (job.status === 'failed') {
           reject(new Error(job.error || 'Download failed'));
         } else {
@@ -130,6 +151,11 @@ function getProgressMessage(job: JobInfo): string {
   }
 }
 
+export interface DownloadWithMetadataResult {
+  data: ArrayBuffer;
+  metadata?: StoryMetadata;
+}
+
 /**
  * Full download flow: check existing job → create if needed → poll → download
  */
@@ -138,7 +164,7 @@ export async function downloadWithJobQueue(
   type: 'single-chapter' | 'multi-chapter' | 'series',
   format: 'pdf' | 'epub',
   onProgress?: ProgressCallback
-): Promise<ArrayBuffer> {
+): Promise<DownloadWithMetadataResult> {
   // Check for existing job in localStorage
   const existingJob = getStoredJob(url, type, format);
 
@@ -158,7 +184,7 @@ export async function downloadWithJobQueue(
     } else {
       // Success - clear storage and return result
       clearStoredJob(url, type, format);
-      return pollResult.result;
+      return { data: pollResult.result, metadata: pollResult.metadata };
     }
   }
 
@@ -183,5 +209,5 @@ export async function downloadWithJobQueue(
     throw new Error('Job was deleted unexpectedly. Please try again.');
   }
 
-  return pollResult.result;
+  return { data: pollResult.result, metadata: pollResult.metadata };
 }

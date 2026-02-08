@@ -66,6 +66,11 @@ export interface JobFileResult {
   filePath: string;
   contentType: string;
   fileSize: number;
+  metadata?: StoryMetadata & {
+    storyId?: string;
+    chapters?: number;
+    url?: string;
+  };
 }
 
 export interface Job {
@@ -83,6 +88,11 @@ export interface Job {
 
 export interface JobInfo extends Omit<Job, 'result'> {
   hasResult: boolean;
+  metadata?: StoryMetadata & {
+    storyId?: string;
+    chapters?: number;
+    url?: string;
+  };
 }
 
 export interface QueueStats {

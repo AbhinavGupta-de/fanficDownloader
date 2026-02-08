@@ -2,17 +2,12 @@
  * Service for downloading series from AO3
  */
 
-import Epub from 'epub-gen';
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
+import { EPub } from 'epub-gen-memory';
 import logger from '../utils/logger.js';
 import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import ao3Scraper from '../scrapers/ao3.scraper.js';
 import type { Page, Browser } from 'puppeteer';
 import type { DownloadFormat, DownloadResult } from '../types/index.js';
-
-const readFile = promisify(fs.readFile);
 
 /**
  * Launches a puppeteer browser
@@ -30,9 +25,12 @@ async function navigateToPage(page: Page, url: string): Promise<void> {
 }
 
 /**
- * Fetches story content from a page
+ * Fetches the full content of a single work (navigating to "Entire Work" view if needed)
  */
-async function fetchStoryContent(page: Page): Promise<string> {
+async function fetchWorkContent(page: Page, workUrl: string): Promise<string> {
+  await navigateToPage(page, workUrl);
+
+  // If multi-chapter, navigate to the "Entire Work" view
   const entireWorkLink = await page.$('li.chapter.entire a');
   if (entireWorkLink) {
     const entireWorkUrl = await page.evaluate(
@@ -44,63 +42,39 @@ async function fetchStoryContent(page: Page): Promise<string> {
   }
 
   const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-  logger.info('Fetched story content', { contentLength: storyContent.length });
-
+  logger.info('Fetched work content', { contentLength: storyContent.length });
   return storyContent;
 }
 
 /**
- * Handles single chapter page and recursively gets next stories
+ * Gets all work URLs from a series listing page.
+ * The page must already be navigated to the series URL.
  */
-async function handleSingleChapterPage(page: Page, url: string): Promise<string[]> {
-  const storiesContent: string[] = [];
-  await navigateToPage(page, url);
-
-  const entireWorkLink = await page.$('li.chapter.entire a');
-  if (entireWorkLink) {
-    const entireWorkUrl = await page.evaluate(
-      (link) => (link as HTMLAnchorElement).href,
-      entireWorkLink
-    );
-    await navigateToPage(page, entireWorkUrl);
-  }
-
-  const storyContent = await page.$eval('#workskin', (div) => div.innerHTML);
-  storiesContent.push(storyContent);
-
-  const nextLink = await page.$('span.series a.next');
-  if (nextLink) {
-    const nextUrl = await page.evaluate((link) => (link as HTMLAnchorElement).href, nextLink);
-    logger.info('Navigating to next story', { url: nextUrl });
-    const nextStoryContent = await handleSingleChapterPage(page, nextUrl);
-    storiesContent.push(...nextStoryContent);
-  } else {
-    logger.info('No more stories found in the series');
-  }
-
-  return storiesContent;
+async function getWorkUrlsFromSeriesPage(page: Page): Promise<string[]> {
+  const workUrls = await page.$$eval(
+    'ul.series li.work h4.heading a',
+    (links) => links
+      .map((link) => (link as HTMLAnchorElement).href)
+      .filter((href) => href.includes('/works/'))
+  );
+  return workUrls;
 }
 
 /**
- * Handles series page
+ * Finds the series URL from a work page.
+ * AO3 work pages link to their series in a list item like:
+ *   <li>Part <strong>N</strong> of <a href="/series/12345">Series Name</a></li>
  */
-async function handleSeriesPage(page: Page, url: string): Promise<string[]> {
-  const storiesContent: string[] = [];
-  await navigateToPage(page, url);
-
-  const firstStoryLink = await page.$('ul.series li.work h4.heading a');
-  if (!firstStoryLink) {
-    logger.info('No stories found in the series');
-    return storiesContent;
+async function findSeriesUrlFromWorkPage(page: Page): Promise<string | null> {
+  try {
+    const seriesUrl = await page.$eval(
+      'a[href*="/series/"]',
+      (link) => (link as HTMLAnchorElement).href
+    );
+    return seriesUrl || null;
+  } catch {
+    return null;
   }
-
-  const firstStoryUrl = await page.evaluate((link) => (link as HTMLAnchorElement).href, firstStoryLink);
-  logger.info('Navigating to first story', { url: firstStoryUrl });
-
-  const storyContent = await handleSingleChapterPage(page, firstStoryUrl);
-  storiesContent.push(...storyContent);
-
-  return storiesContent;
 }
 
 interface SeriesMetadata {
@@ -123,14 +97,16 @@ function extractSeriesId(url: string): string | undefined {
 }
 
 /**
- * Gets series metadata from page
+ * Gets series metadata from the series listing page.
+ * The page must already be navigated to the series URL.
  */
 async function getSeriesMetadata(page: Page): Promise<SeriesMetadata> {
   let title = 'Fanfic Series';
   let creator: string | undefined;
 
   try {
-    title = await page.$eval('h2.heading', (el) => el.textContent?.trim() || 'Fanfic Series');
+    // Use #main to avoid matching the TOS prompt heading
+    title = await page.$eval('#main h2.heading', (el) => el.textContent?.trim() || 'Fanfic Series');
   } catch { /* use default */ }
 
   try {
@@ -141,7 +117,7 @@ async function getSeriesMetadata(page: Page): Promise<SeriesMetadata> {
 }
 
 /**
- * Gets all series content
+ * Gets all series content by visiting each work in the series
  */
 async function getSeriesContent(url: string): Promise<SeriesContentResult> {
   const browser = await launchBrowser();
@@ -153,13 +129,41 @@ async function getSeriesContent(url: string): Promise<SeriesContentResult> {
   let metadata: SeriesMetadata = { title: 'Fanfic Series', worksCount: 0 };
 
   try {
-    if (url.includes('/series/')) {
+    let seriesUrl = url;
+
+    // If user provided a work URL, find the series page from it
+    if (!url.includes('/series/')) {
+      logger.info('Work URL provided for series download, looking for series link', { url });
       await navigateToPage(page, url);
-      metadata = await getSeriesMetadata(page);
-      storiesContent = await handleSeriesPage(page, url);
-    } else {
-      storiesContent = await handleSingleChapterPage(page, url);
+      const foundSeriesUrl = await findSeriesUrlFromWorkPage(page);
+
+      if (!foundSeriesUrl) {
+        throw new Error('This work does not appear to be part of a series');
+      }
+
+      logger.info('Found series URL from work page', { seriesUrl: foundSeriesUrl });
+      seriesUrl = foundSeriesUrl;
     }
+
+    // Navigate to the series listing page
+    await navigateToPage(page, seriesUrl);
+    metadata = await getSeriesMetadata(page);
+
+    // Get all work URLs from the series page
+    const workUrls = await getWorkUrlsFromSeriesPage(page);
+    logger.info('Found works in series', { count: workUrls.length, urls: workUrls });
+
+    if (workUrls.length === 0) {
+      throw new Error('No works found in the series');
+    }
+
+    // Visit each work and fetch its content
+    for (let i = 0; i < workUrls.length; i++) {
+      logger.info(`Fetching work ${i + 1}/${workUrls.length}`, { url: workUrls[i] });
+      const content = await fetchWorkContent(page, workUrls[i]);
+      storiesContent.push(content);
+    }
+
     metadata.worksCount = storiesContent.length;
   } finally {
     await browser.close();
@@ -215,24 +219,19 @@ async function generateCombinedPdf(contentArray: string[]): Promise<Buffer> {
  * Generates combined EPUB from content array
  */
 async function generateCombinedEpub(contentArray: string[], metadata: SeriesMetadata): Promise<Buffer> {
-  const epubOptions = {
-    title: metadata.title,
-    author: metadata.creator || 'Unknown',
-    content: contentArray.map((content, index) => ({
-      title: `Story ${index + 1}`,
-      data: content
-    }))
-  };
+  const chapters = contentArray.map((content, index) => ({
+    title: `Story ${index + 1}`,
+    content,
+  }));
 
-  const outputPath = path.join('/tmp', `series-${Date.now()}.epub`);
-  await new Epub(epubOptions, outputPath).promise;
+  const epubGen = new EPub(
+    { title: metadata.title, author: metadata.creator || 'Unknown' },
+    chapters
+  );
+  await epubGen.render();
+  const epubBuffer = await epubGen.genEpub();
 
-  const epubBuffer = await readFile(outputPath);
   logger.info('Combined EPUB generated successfully', { size: epubBuffer.length });
-
-  // Clean up temporary file
-  fs.unlinkSync(outputPath);
-
   return epubBuffer;
 }
 

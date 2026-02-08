@@ -2,16 +2,11 @@
  * Service for downloading a single chapter from AO3 or FFN
  */
 
-import Epub from 'epub-gen';
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
+import { EPub } from 'epub-gen-memory';
 import logger from '../utils/logger.js';
 import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import { getScraper, detectSite } from '../scrapers/index.js';
 import type { DownloadFormat, DownloadResult, StoryMetadata } from '../types/index.js';
-
-const readFile = promisify(fs.readFile);
 
 /**
  * Extract story ID from URL
@@ -95,26 +90,14 @@ async function generatePdf(content: string): Promise<Buffer> {
  */
 async function generateEpub(content: string, metadata: StoryMetadata): Promise<Buffer> {
   try {
-    const epubOptions = {
-      title: metadata.title,
-      author: metadata.author,
-      content: [
-        {
-          title: 'Story',
-          data: content
-        }
-      ]
-    };
+    const epubGen = new EPub(
+      { title: metadata.title, author: metadata.author },
+      [{ title: 'Story', content }]
+    );
+    await epubGen.render();
+    const epubBuffer = await epubGen.genEpub();
 
-    const outputPath = path.join('/tmp', `story-${Date.now()}.epub`);
-    await new Epub(epubOptions, outputPath).promise;
-
-    const epubBuffer = await readFile(outputPath);
     logger.info('EPUB generated successfully', { size: epubBuffer.length });
-
-    // Clean up temporary file
-    fs.unlinkSync(outputPath);
-
     return epubBuffer;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error';

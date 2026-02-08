@@ -133,7 +133,10 @@ router.get('/:id/result', (req: Request<JobParams>, res: Response) => {
   res.setHeader('Content-Length', result.fileSize);
 
   const extension = result.contentType === 'application/pdf' ? 'pdf' : 'epub';
-  res.setHeader('Content-Disposition', `attachment; filename="download.${extension}"`);
+  const title = result.metadata?.title || 'download';
+  // Sanitize filename: remove characters not safe for filesystems
+  const safeTitle = title.replace(/[/\\?%*:|"<>]/g, '').trim() || 'download';
+  res.setHeader('Content-Disposition', `attachment; filename="${safeTitle}.${extension}"`);
 
   // Stream file from disk
   const fileStream = fs.createReadStream(result.filePath);

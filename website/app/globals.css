@@ -1,6 +1,13 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --font-body: "Kelly Slab", serif;
+  --font-writing: "Playwrite FR Moderne", cursive;
+  --color-primary: #FF463F;
+  --color-background: #20231F;
+  --color-secondary: #FF8580;
+  --color-backgroundSecondary: #85EE83;
+}
 
 @layer base {
   html {
@@ -12,19 +19,19 @@
   .section-card {
     @apply bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-700/50 transition-all duration-300 hover:shadow-2xl hover:border-primary/30;
   }
-  
+
   .heading-primary {
     @apply text-2xl md:text-3xl font-bold text-primary mb-4 font-writing;
   }
-  
+
   .text-content {
     @apply text-base md:text-lg leading-relaxed text-gray-300;
   }
-  
+
   .image-container {
     @apply rounded-xl overflow-hidden shadow-lg border border-gray-700/50 transition-transform duration-300 hover:scale-105;
   }
-  
+
   .link-hover {
     @apply text-primary underline decoration-2 underline-offset-4 transition-colors duration-200 hover:text-secondary;
   }

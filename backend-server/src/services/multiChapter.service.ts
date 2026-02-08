@@ -2,17 +2,12 @@
  * Service for downloading multiple chapters (entire work) from AO3 or FFN
  */
 
-import Epub from 'epub-gen';
-import fs from 'fs';
-import path from 'path';
-import { promisify } from 'util';
+import { EPub } from 'epub-gen-memory';
 import logger from '../utils/logger.js';
 import { puppeteer, getBrowserConfig, getPdfOptions } from '../utils/puppeteerConfig.js';
 import { getScraper, detectSite } from '../scrapers/index.js';
 import { getMultiChapterContentParallel } from '../scrapers/ffn-parallel.scraper.js';
 import type { DownloadFormat, DownloadResult } from '../types/index.js';
-
-const readFile = promisify(fs.readFile);
 
 // Configuration for parallel FFN downloads
 const FFN_PARALLEL_CONFIG = {
@@ -164,25 +159,14 @@ async function generateOutput(
     const pdfBuffer = await generatePdf(content);
     return { buffer: pdfBuffer, contentType: 'application/pdf' };
   } else {
-    const epubOptions = {
-      title,
-      author,
-      content: [
-        {
-          title: 'Story',
-          data: content
-        }
-      ]
-    };
+    const epubGen = new EPub(
+      { title, author },
+      [{ title: 'Story', content }]
+    );
+    await epubGen.render();
+    const epubBuffer = await epubGen.genEpub();
 
-    const outputPath = path.join('/tmp', `story-${Date.now()}.epub`);
-    await new Epub(epubOptions, outputPath).promise;
-
-    const epubBuffer = await readFile(outputPath);
     logger.info('EPUB generated', { size: epubBuffer.length });
-
-    fs.unlinkSync(outputPath);
-
     return { buffer: epubBuffer, contentType: 'application/epub+zip' };
   }
 }
