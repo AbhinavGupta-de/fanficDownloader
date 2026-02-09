@@ -181,8 +181,9 @@ async function processNextJob(): Promise<void> {
 
     const { url, type: format } = job.data;
 
+    let timeoutId: NodeJS.Timeout;
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Job timed out')), JOB_TIMEOUT_MS);
+      timeoutId = setTimeout(() => reject(new Error('Job timed out')), JOB_TIMEOUT_MS);
     });
 
     let downloadPromise: Promise<DownloadResult>;
@@ -200,10 +201,13 @@ async function processNextJob(): Promise<void> {
         throw new Error(`Unknown job type: ${job.type}`);
     }
 
-    const result = await Promise.race([downloadPromise, timeoutPromise]);
+    let result = await Promise.race([downloadPromise, timeoutPromise]);
+    clearTimeout(timeoutId!);
 
     // Save to disk instead of keeping in RAM
     const fileResult = saveResultToDisk(jobId, result);
+    // Release the large buffer from memory
+    result = null as unknown as DownloadResult;
 
     job.status = JobStatus.COMPLETED;
     job.completedAt = Date.now();

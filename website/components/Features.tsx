@@ -15,8 +15,8 @@ const Features = (props: Props) => {
                                         <li className="flex items-start text-content" data-testid="feature-site">
                                                 <span className="text-primary mr-2 text-xl">•</span>
                                                 <span>
-                                                        <span className="text-primary font-semibold">Site Supported:</span>{' '}
-                                                        <span className="text-white">archiveofourown.org</span>
+                                                        <span className="text-primary font-semibold">Sites Supported:</span>{' '}
+                                                        <span className="text-white">archiveofourown.org, fanfiction.net</span>
                                                 </span>
                                         </li>
                                         <li className="flex items-start text-content" data-testid="feature-download">
