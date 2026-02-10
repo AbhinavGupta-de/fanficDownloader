@@ -233,13 +233,6 @@
   dependencies:
     "@opentelemetry/semantic-conventions" "^1.29.0"
 
-"@opentelemetry/core@2.5.0":
-  version "2.5.0"
-  resolved "https://registry.npmjs.org/@opentelemetry/core/-/core-2.5.0.tgz"
-  integrity sha512-ka4H8OM6+DlUhSAZpONu0cPBtPPTQKxbxVzC4CzVx5+K4JnroJVBtDzLAMx4/3CDTJXRvVFhpFjtl4SaiTNoyQ==
-  dependencies:
-    "@opentelemetry/semantic-conventions" "^1.29.0"
-
 "@opentelemetry/exporter-logs-otlp-http@^0.208.0":
   version "0.208.0"
   resolved "https://registry.npmjs.org/@opentelemetry/exporter-logs-otlp-http/-/exporter-logs-otlp-http-0.208.0.tgz"
@@ -272,15 +265,7 @@
     "@opentelemetry/sdk-trace-base" "2.2.0"
     protobufjs "^7.3.0"
 
-"@opentelemetry/resources@^2.2.0":
-  version "2.5.0"
-  resolved "https://registry.npmjs.org/@opentelemetry/resources/-/resources-2.5.0.tgz"
-  integrity sha512-F8W52ApePshpoSrfsSk1H2yJn9aKjCrbpQF1M9Qii0GHzbfVeFUB+rc3X4aggyZD8x9Gu3Slua+s6krmq6Dt8g==
-  dependencies:
-    "@opentelemetry/core" "2.5.0"
-    "@opentelemetry/semantic-conventions" "^1.29.0"
-
-"@opentelemetry/resources@2.2.0":
+"@opentelemetry/resources@^2.2.0", "@opentelemetry/resources@2.2.0":
   version "2.2.0"
   resolved "https://registry.npmjs.org/@opentelemetry/resources/-/resources-2.2.0.tgz"
   integrity sha512-1pNQf/JazQTMA0BiO5NINUzH0cbLbbl7mntLa4aJNmCCXSj0q03T5ZXXL0zw4G55TjdL9Tz32cznGClf+8zr5A==
@@ -326,10 +311,10 @@
   dependencies:
     cross-spawn "^7.0.6"
 
-"@posthog/types@1.342.1":
-  version "1.342.1"
-  resolved "https://registry.npmjs.org/@posthog/types/-/types-1.342.1.tgz"
-  integrity sha512-bcyBdO88FWTkd5AVTa4Nu8T7RfY0WJrG7WMCXum/rcvNjYhS3DmOfKf8o/Bt56vA3J3yeU0vbgrmltYVoTAfaA==
+"@posthog/types@1.343.1":
+  version "1.343.1"
+  resolved "https://registry.npmjs.org/@posthog/types/-/types-1.343.1.tgz"
+  integrity sha512-NPrqFexixyeM4sWkwXI0W1R6GjETKUYeBfg/miOyMnucFIvVOWuIbIql5/mT4MNJguDL0FX8ZwFuVgCSh7rUeA==
 
 "@protobufjs/aspromise@^1.1.1", "@protobufjs/aspromise@^1.1.2":
   version "1.1.2"
@@ -2166,10 +2151,10 @@ postcss@8.4.31:
     picocolors "^1.0.0"
     source-map-js "^1.0.2"
 
-posthog-js@^1.336.4:
-  version "1.342.1"
-  resolved "https://registry.npmjs.org/posthog-js/-/posthog-js-1.342.1.tgz"
-  integrity sha512-mMnQhWuKj4ejFicLtFzr52InmqploOyW1eInqXBkaVqE1DPhczBDmwsd9MSggY8kv0EXm8zgK+2tzBJUKcX5yg==
+posthog-js@^1.343.1:
+  version "1.343.1"
+  resolved "https://registry.npmjs.org/posthog-js/-/posthog-js-1.343.1.tgz"
+  integrity sha512-LgO2SKfDzi6Jh2PTmG14xbZhiE8oJtRRO0V/VHmDGGIVapUUoM8t3Xfh9SIdJpGU3t2/Jtw7FnmWUsIPYdszOw==
   dependencies:
     "@opentelemetry/api" "^1.9.0"
     "@opentelemetry/api-logs" "^0.208.0"
@@ -2177,7 +2162,7 @@ posthog-js@^1.336.4:
     "@opentelemetry/resources" "^2.2.0"
     "@opentelemetry/sdk-logs" "^0.208.0"
     "@posthog/core" "1.20.1"
-    "@posthog/types" "1.342.1"
+    "@posthog/types" "1.343.1"
     core-js "^3.38.1"
     dompurify "^3.3.1"
     fflate "^0.4.8"

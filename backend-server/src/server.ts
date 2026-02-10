@@ -7,8 +7,12 @@ import { setupExpressErrorHandler } from 'posthog-node';
 import app from './app.js';
 import logger from './utils/logger.js';
 import { initAnalytics, shutdownAnalytics, getPostHogClient } from './utils/analytics.js';
+import { initOtel, shutdownOtel } from './utils/otel.js';
 
 const PORT = parseInt(process.env.PORT || '8002');
+
+// Initialize OpenTelemetry (must be before analytics so logger can ship logs)
+initOtel();
 
 // Initialize analytics
 initAnalytics();
@@ -33,6 +37,7 @@ const gracefulShutdown = async (signal: string) => {
   server.close(async () => {
     logger.info('HTTP server closed');
     await shutdownAnalytics();
+    await shutdownOtel();
     process.exit(0);
   });
 

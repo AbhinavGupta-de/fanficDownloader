@@ -39,6 +39,7 @@ export function initAnalytics(): void {
       host: POSTHOG_HOST,
       flushAt: 20, // Send events in batches of 20
       flushInterval: 10000, // Or every 10 seconds
+      enableExceptionAutocapture: true, // Auto-capture uncaught exceptions & unhandled rejections
     });
 
     // Register site groups for group analytics

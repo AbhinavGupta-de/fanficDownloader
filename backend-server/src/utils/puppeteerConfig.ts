@@ -29,7 +29,8 @@ export const getBrowserConfig = (): LaunchOptions => {
     defaultViewport: {
       width: 1920,
       height: 1080
-    }
+    },
+    timeout: 60000, // 60s browser launch timeout (default 30s too short in containers)
   };
 
   // Only set executablePath if explicitly provided (for Docker/CI environments)

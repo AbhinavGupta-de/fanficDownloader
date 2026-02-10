@@ -28,6 +28,10 @@
   "author": "Abhinav Gupta",
   "license": "ISC",
   "dependencies": {
+    "@opentelemetry/api-logs": "^0.211.0",
+    "@opentelemetry/exporter-logs-otlp-http": "^0.211.0",
+    "@opentelemetry/resources": "^2.5.0",
+    "@opentelemetry/sdk-logs": "^0.211.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "epub-gen-memory": "^1.1.2",

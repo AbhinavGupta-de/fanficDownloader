@@ -1,6 +1,9 @@
 /**
  * Simple logger utility
+ * Logs to console and ships to PostHog via OpenTelemetry
  */
+
+import { emitLog } from './otel.js';
 
 type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'DEBUG';
 
@@ -17,20 +20,24 @@ function formatMessage(level: LogLevel, message: string, metadata?: LogMetadata)
 export const logger = {
   info(message: string, metadata?: LogMetadata): void {
     console.log(formatMessage('INFO', message, metadata));
+    emitLog('INFO', message, metadata);
   },
 
   warn(message: string, metadata?: LogMetadata): void {
     console.warn(formatMessage('WARN', message, metadata));
+    emitLog('WARN', message, metadata);
   },
 
   error(message: string, metadata?: LogMetadata): void {
     console.error(formatMessage('ERROR', message, metadata));
+    emitLog('ERROR', message, metadata);
   },
 
   debug(message: string, metadata?: LogMetadata): void {
     if (process.env.NODE_ENV !== 'production') {
       console.debug(formatMessage('DEBUG', message, metadata));
     }
+    emitLog('DEBUG', message, metadata);
   }
 };
 
