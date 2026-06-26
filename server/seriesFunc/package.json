@@ -11,5 +11,8 @@
 	"dependencies": {
 		"epub-gen": "^0.1.0",
 		"puppeteer": "^22.11.1"
+	},
+	"overrides": {
+		"ws": "^8.17.1"
 	}
 }
